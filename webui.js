@@ -175,23 +175,40 @@ mineos.dependencies(function(err, binaries) {
   tally();
   setInterval(tally, 7200000); //7200000 == 120min
 
-    app.get('/', function(req, res){
-        res.redirect('/admin/index.html');
-    });
+  app.get('/', function(req, res){
+    if(USE_NEW_UI){
+      res.redirect('/ui/index.html');
+    }else{
+      res.redirect('/admin/index.html');
+    }
+  });
 
-    app.get('/admin/index.html', ensureAuthenticated, function(req, res){
-        res.sendFile('/html/index.html', response_options);
-    });
+  app.get('/admin/index.html', ensureAuthenticated, function(req, res){
+      res.sendFile('/html/index.html', response_options);
+  });
 
-    app.get('/login', function(req, res){
-        res.sendFile('/html/login.html');
-    });
+  app.get('/login', function(req, res){
+      res.sendFile('/html/login.html');
+  });
 
-    app.post('/auth', passport.authenticate('local-signin', {
-        successRedirect: '/admin/index.html',
-        failureRedirect: '/admin/login.html'
-        })
-    );
+  app.post('/auth', passport.authenticate('local-signin', {
+    successRedirect: '/admin/index.html',
+    failureRedirect: '/admin/login.html'
+    })
+  );
+  
+  // Page redirect/routing managed by the ui AuthGaurd class
+  app.post('/api/auth', 
+    passport.authenticate('local-signin'),
+    function(req, res) {
+      res.json({ username: req.user.username });
+    }
+  );
+
+  app.get('/api/logout', function(req, res){
+    req.logout();
+    res.end();
+  });
 
   app.all('/api/:server_name/:command', ensureAuthenticated, function(req, res) {
     var target_server = req.params.server_name;
@@ -245,6 +262,10 @@ mineos.dependencies(function(err, binaries) {
   var SOCKET_PORT = null;
   var SOCKET_HOST = '0.0.0.0';
   var USE_HTTPS = true;
+  var USE_NEW_UI = false;
+
+  if ('use_new_ui' in mineos_config)
+    USE_NEW_UI = mineos_config['use_new_ui'];
 
   if ('use_https' in mineos_config)
     USE_HTTPS = mineos_config['use_https'];

@@ -18,7 +18,8 @@
   },
   "homepage": "https://github.com/hexparrot/mineos-node",
   "scripts": {
-    "start": "node webui.js"
+    "start": "node webui.js",
+    "dev": "nodemon webui.js"
   },
   "dependencies": {
     "adm-zip": "^0.4.11",
@@ -81,6 +82,7 @@
     "xml2js": "^0.4.19"
   },
   "devDependencies": {
+    "nodemon": "^2.0.9",
     "nodeunit": "^0.11.3"
   }
 }
