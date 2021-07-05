@@ -1,2 +1,4 @@
-<app-header></app-header>
-<h1>Dashboard comming soon.</h1>
+<div [class.theme-alternate]="isDarkTheme">
+  <app-header (isDarkTheme)="isDarkTheme"></app-header>
+  <h1>Dashboard comming soon.</h1>
+</div>

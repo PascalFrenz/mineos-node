@@ -5,6 +5,10 @@
        mat-raised-button
        routerLink="dashboard"
        routerLinkActive="active">dashboard</a>
-    <button mat-button (click)="logout()">Log out</button>
+       <a mat-button href="/admin/index.html">Legacy interface</a>
+    <button mat-button
+            (click)="changeTheme()">Change Theme</button>
+    <button mat-button
+            (click)="logout()">Log out</button>
   </span>
 </mat-toolbar>

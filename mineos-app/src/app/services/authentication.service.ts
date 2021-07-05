@@ -30,7 +30,7 @@ export class AuthenticationService {
     return this.http.post<User>(`/api/auth`, formData).pipe(
       map((user) => {
         this.currentUser = user;
-        this.router.navigate(['/ui/dashboard']);
+        this.router.navigate(['dashboard']);
         return true;
       })
     );
@@ -40,7 +40,7 @@ export class AuthenticationService {
     return this.http.get<User>(`/api/logout`).pipe(
       map((user) => {
         this.currentUser = undefined;
-        this.router.navigate(['/ui/login']);
+        this.router.navigate(['login']);
         return true;
       })
     );

@@ -177,12 +177,12 @@ mineos.dependencies(function(err, binaries) {
 
   app.get('/', function(req, res){
     if(USE_NEW_UI){
-      res.redirect('/ui/index.html');
+      res.redirect('/ui');
     }else{
       res.redirect('/admin/index.html');
     }
   });
-
+  
   app.get('/admin/index.html', ensureAuthenticated, function(req, res){
       res.sendFile('/html/index.html', response_options);
   });
@@ -208,6 +208,19 @@ mineos.dependencies(function(err, binaries) {
   app.get('/api/logout', function(req, res){
     req.logout();
     res.end();
+  });
+
+  app.get('/api/switch_ui', function(req, res){
+    if(res.params.new_ui){
+      res.redirect('/ui');
+    }else{}
+    
+    if(res.params.redirect){
+      res.redirect('/ui');
+    }
+    if(res.params.redirect){
+      res.redirect('/ui');
+    }
   });
 
   app.all('/api/:server_name/:command', ensureAuthenticated, function(req, res) {
@@ -252,6 +265,7 @@ mineos.dependencies(function(err, binaries) {
   app.use('/angular-moment-duration-format', express.static(__dirname + '/node_modules/moment-duration-format/lib'));
   app.use('/angular-sanitize', express.static(__dirname + '/node_modules/angular-sanitize'));
   app.use('/admin', express.static(__dirname + '/html'));
+  app.use('/ui/', express.static(__dirname + '/ui'));
 
   process.on('SIGINT', function() {
     console.log("Caught interrupt signal; closing webui....");
