@@ -30,9 +30,10 @@ import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { AppRoutingModule } from './app-routing.module';
 import { ReactiveFormsModule } from '@angular/forms';
 import { HeaderComponent } from './components/header/header.component';
+import { ThemeSwitcherComponent } from './components/theme-switcher/theme-switcher.component';
 
 @NgModule({
-  declarations: [AppComponent, LoginComponent, DashboardComponent, HeaderComponent],
+  declarations: [AppComponent, LoginComponent, DashboardComponent, HeaderComponent, ThemeSwitcherComponent],
   imports: [
     AppRoutingModule,
     BrowserModule,

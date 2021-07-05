@@ -3,11 +3,11 @@
   <span class="nav-tool-items">
     <a mat-button
        mat-raised-button
+       color="accent"
        routerLink="dashboard"
        routerLinkActive="active">dashboard</a>
        <a mat-button href="/admin/index.html">Legacy interface</a>
-    <button mat-button
-            (click)="changeTheme()">Change Theme</button>
+       <app-theme-switcher></app-theme-switcher>
     <button mat-button
             (click)="logout()">Log out</button>
   </span>

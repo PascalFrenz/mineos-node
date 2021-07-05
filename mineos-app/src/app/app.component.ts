@@ -1,4 +1,5 @@
 import { Component } from '@angular/core';
+import { ThemeSwitcherService } from './services/theme-switcher.service';
 
 @Component({
   selector: 'app-root',
@@ -7,4 +8,8 @@ import { Component } from '@angular/core';
 })
 export class AppComponent {
   title = 'mineos-app';
+
+  constructor(private themeSwitcher:ThemeSwitcherService){
+    themeSwitcher.setMode(themeSwitcher.isDarkMode());
+  }
 }
