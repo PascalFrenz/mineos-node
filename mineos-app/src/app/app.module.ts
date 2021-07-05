@@ -31,9 +31,18 @@ import { AppRoutingModule } from './app-routing.module';
 import { ReactiveFormsModule } from '@angular/forms';
 import { HeaderComponent } from './components/header/header.component';
 import { ThemeSwitcherComponent } from './components/theme-switcher/theme-switcher.component';
+import { ServerDetailsComponent } from './components/server-details/server-details.component';
+import { StatusComponent } from './components/status/status.component';
+import { EnvironmentComponent } from './components/environment/environment.component';
+import { RestorePointComponent } from './components/restore-point/restore-point.component';
+import { ArchiveComponent } from './components/archive/archive.component';
+import { SchedulingComponent } from './components/scheduling/scheduling.component';
+import { LoggingComponent } from './components/logging/logging.component';
+import { ProfilesComponent } from './components/profiles/profiles.component';
+import { CalendarComponent } from './components/calendar/calendar.component';
 
 @NgModule({
-  declarations: [AppComponent, LoginComponent, DashboardComponent, HeaderComponent, ThemeSwitcherComponent],
+  declarations: [AppComponent, LoginComponent, DashboardComponent, HeaderComponent, ThemeSwitcherComponent, ServerDetailsComponent, StatusComponent, EnvironmentComponent, RestorePointComponent, ArchiveComponent, SchedulingComponent, LoggingComponent, ProfilesComponent, CalendarComponent],
   imports: [
     AppRoutingModule,
     BrowserModule,

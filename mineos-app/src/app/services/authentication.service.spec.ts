@@ -7,6 +7,8 @@ import {
 import { AuthenticationService } from './authentication.service';
 import { User } from '../models/user';
 import { LoginRequest } from '../models/login-request';
+import { RouterTestingModule } from '@angular/router/testing';
+import { LoginComponent } from '../components/login/login.component';
 
 describe('AuthenticationService', () => {
   let service: AuthenticationService;
@@ -14,7 +16,7 @@ describe('AuthenticationService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [HttpClientTestingModule],
+      imports: [RouterTestingModule.withRoutes([{ path: 'login', component: LoginComponent }]), HttpClientTestingModule],
     });
     service = TestBed.inject(AuthenticationService);
     httpMock = TestBed.inject(HttpTestingController);
@@ -28,47 +30,47 @@ describe('AuthenticationService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should set loggedUser on login', () => {
+  it('should set currentUser on login', () => {
     let login: LoginRequest = {
       username: 'jdoe',
-      password: 'minecraft'
+      password: 'minecraft',
     } as LoginRequest;
     let user: User = {
-      username: 'jdoe'
+      username: 'jdoe',
     } as User;
 
-    service.loginUser(login).subscribe((response)=>{
-      expect(response).toEqual(user)
+    service.loginUser(login).subscribe((response) => {
+      expect(response).toEqual(true);
     });
-    const request = httpMock.expectOne(`/auth`);
+    const request = httpMock.expectOne(`/api/auth`);
     expect(request.request.method).toBe('POST');
     request.flush(user);
-    expect(service['loggedUser']).toEqual(user);
+    expect(service['currentUser']).toEqual(user);
   });
 
-  it('should clear loggedUser on logout', () => {
+  it('should clear currentUser on logout', () => {
     let user: User = {
-      username: 'jdoe'
+      username: 'jdoe',
     } as User;
 
-    service.logoutUser().subscribe((response)=>{
-      expect(response).toEqual(user)
+    service.logoutUser().subscribe((response) => {
+      expect(response).toEqual(true);
     });
-    const request = httpMock.expectOne(`/logout`);
+    const request = httpMock.expectOne(`/api/logout`);
     expect(request.request.method).toBe('GET');
     request.flush(user);
-    expect(service['loggedUser']).toEqual(undefined);
+    expect(service['currentUser']).toEqual(undefined);
   });
 
-  it('should check loggedUser is set when Authenticated', () => {
-    service['loggedUser'] = {
-      username: 'jdoe'
+  it('should check currentUser is set when Authenticated', () => {
+    service['currentUser'] = {
+      username: 'jdoe',
     } as User;
     expect(service.isAuthenticated()).toBe(true);
   });
 
-  it('should check loggedUser is not set when not Authenticated', () => {
-    service['loggedUser'] = undefined;
+  it('should check currentUser is not set when not Authenticated', () => {
+    service['currentUser'] = undefined;
     expect(service.isAuthenticated()).toBe(false);
   });
 });

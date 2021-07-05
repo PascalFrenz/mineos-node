@@ -1,30 +1,36 @@
 import { TestBed } from '@angular/core/testing';
 import { RouterTestingModule } from '@angular/router/testing';
-import { Location } from '@angular/common';
 import { AuthGuard } from './auth.guard';
-import { routes } from './app-routing.module';
 import { AuthenticationService } from './services/authentication.service';
 import { Router } from '@angular/router';
+import { LoginComponent } from './components/login/login.component';
 
 describe('AuthGuard', () => {
   let guard: AuthGuard;
   let mockAuthenticationService: jasmine.SpyObj<AuthenticationService>;
-  let router: Router;
+  let routerMock: jasmine.SpyObj<Router>;
+  let routeMock: any = { snapshot: {}};
+  let routeStateMock: any = { snapshot: {}, url: 'login'};
 
   beforeEach(() => {
     mockAuthenticationService = jasmine.createSpyObj<AuthenticationService>(
-      'AuthenticationService',
-      ['isAuthenticated']
+      'AuthenticationService',{
+        isAuthenticated: true
+      }
+    );
+    routerMock = jasmine.createSpyObj<Router>(
+      'Router',{
+        navigate:Promise.resolve(true)
+      }
     );
     TestBed.configureTestingModule({
-      imports: [RouterTestingModule.withRoutes(routes)],
+      imports: [RouterTestingModule.withRoutes([{ path: 'login', component: LoginComponent }])],
       providers: [
+        { provide: Router, useValue: routerMock },
         { provide: AuthenticationService, useValue: mockAuthenticationService },
       ],
     });
     guard = TestBed.inject(AuthGuard);
-    router = TestBed.inject(Router);
-    spyOn(router, 'navigate');
   });
 
   it('should be created', () => {
@@ -33,12 +39,15 @@ describe('AuthGuard', () => {
 
   it('should redirect an unauthenticated user to the login route', () => {
     mockAuthenticationService.isAuthenticated.and.returnValue(false);
-    expect(guard.canActivate()).toEqual(false);
-    expect(router.navigate).toHaveBeenCalledWith(['/ui/login']);
+    expect(guard.canActivate(routeMock, routeStateMock)).toEqual(false);
+    expect(routerMock.navigate).toHaveBeenCalledWith(['login']);
   });
 
   it('should allow the authenticated user to access app', () => {
-    mockAuthenticationService.isAuthenticated.and.returnValue(true);
-    expect(guard.canActivate()).toEqual(true);
+    expect(guard.canActivate(routeMock, routeStateMock)).toEqual(true);
+  });
+
+  it('should allow the authenticated user to access child routes', () => {
+    expect(guard.canActivateChild(routeMock, routeStateMock)).toEqual(true);
   });
 });
