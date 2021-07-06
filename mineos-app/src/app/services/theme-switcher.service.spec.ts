@@ -1,4 +1,4 @@
-import { TestBed } from '@angular/core/testing';
+import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { UserPreferences } from '../models/user-preferences';
 
 import { ThemeSwitcherService } from './theme-switcher.service';
@@ -37,13 +37,18 @@ describe('ThemeSwitcherService', () => {
     expect(service).toBeTruthy();
   });
 
-  it('should check user preferences for dark mode', () => {
-    let result = service.isDarkMode();
+  it('should check user preferences for dark mode', fakeAsync(() => {
+    service.initilizeTheme();
+    let result = false;
+    service.isDarkMode().subscribe((data) => {
+      result = data;
+    });
+    tick();
     expect(result).toEqual(true);
     expect(mockUserPreferencesService.getUserPreferences).toHaveBeenCalledTimes(
       1
     );
-  });
+  }));
 
   let testCases = [
     {

@@ -10,6 +10,6 @@ export class AppComponent {
   title = 'mineos-app';
 
   constructor(private themeSwitcher:ThemeSwitcherService){
-    themeSwitcher.setMode(themeSwitcher.isDarkMode());
+    themeSwitcher.initilizeTheme();
   }
 }

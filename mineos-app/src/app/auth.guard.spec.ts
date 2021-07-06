@@ -4,6 +4,7 @@ import { AuthGuard } from './auth.guard';
 import { AuthenticationService } from './services/authentication.service';
 import { Router } from '@angular/router';
 import { LoginComponent } from './components/login/login.component';
+import { of } from 'rxjs';
 
 describe('AuthGuard', () => {
   let guard: AuthGuard;
@@ -15,6 +16,7 @@ describe('AuthGuard', () => {
   beforeEach(() => {
     mockAuthenticationService = jasmine.createSpyObj<AuthenticationService>(
       'AuthenticationService',{
+        isLoggedIn: of(true),
         isAuthenticated: true
       }
     );

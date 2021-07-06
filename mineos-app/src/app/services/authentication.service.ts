@@ -1,7 +1,7 @@
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { Router } from '@angular/router';
-import { Observable } from 'rxjs';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { LoginRequest } from '../models/login-request';
 import { User } from '../models/user';
@@ -11,15 +11,16 @@ import { User } from '../models/user';
 })
 export class AuthenticationService {
   private currentUser: User | undefined = undefined;
+  private loggedIn$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
 
   constructor(private http: HttpClient, private router: Router) {}
 
-  isAuthenticated(): Boolean {
-    console.log(`current user '${JSON.stringify(this.currentUser)}'`);
-    if (this.currentUser) {
-      return true;
-    }
-    return false;
+  isLoggedIn(): Observable<boolean> {
+    return this.loggedIn$.asObservable();
+  }
+
+  isAuthenticated(): boolean {
+    return this.loggedIn$.getValue();
   }
 
   loginUser(loginRequest: LoginRequest): Observable<boolean> {
@@ -30,6 +31,7 @@ export class AuthenticationService {
     return this.http.post<User>(`/api/auth`, formData).pipe(
       map((user) => {
         this.currentUser = user;
+        this.loggedIn$.next(true);
         this.router.navigate(['dashboard']);
         return true;
       })
@@ -40,6 +42,7 @@ export class AuthenticationService {
     return this.http.get<User>(`/api/logout`).pipe(
       map((user) => {
         this.currentUser = undefined;
+        this.loggedIn$.next(false);
         this.router.navigate(['login']);
         return true;
       })

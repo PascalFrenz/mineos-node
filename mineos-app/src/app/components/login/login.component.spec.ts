@@ -15,7 +15,7 @@ describe('LoginComponent', () => {
     mockAuthenticationService = jasmine.createSpyObj<AuthenticationService>(
       'AuthenticationService',
       {
-        isAuthenticated: false,
+        isLoggedIn: of(false),
         loginUser: of(true),
         logoutUser: of(true),
       }
