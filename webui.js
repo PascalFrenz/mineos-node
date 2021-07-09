@@ -196,12 +196,22 @@ mineos.dependencies(function(err, binaries) {
     failureRedirect: '/admin/login.html'
     })
   );
+
+  app.get('/api/auth/is-authenticated', function(req, res){
+    let result = { authenticated : false };
+    if(req.isAuthenticated()){
+      result.authenticated = true;
+    }
+    res.json(result);
+    res.end();
+  });
   
   // Page redirect/routing managed by the ui AuthGaurd class
   app.post('/api/auth', 
     passport.authenticate('local-signin'),
     function(req, res) {
       res.json({ username: req.user.username });
+      res.end();
     }
   );
 

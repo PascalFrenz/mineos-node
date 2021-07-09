@@ -39,11 +39,15 @@ export class AuthGuard implements CanActivate, CanActivateChild {
     | Promise<boolean | UrlTree>
     | boolean
     | UrlTree {
-    if (this.authService.isAuthenticated()) {
-      return true;
-    } else {
-      this.router.navigate(['login']);
-      return false;
-    }
+      console.log(`checking can activeate`);
+    return this.authService.isAuthenticated().pipe(map((loggedIn) => {
+      console.log(`activeate result ${loggedIn}`);
+      if(loggedIn === true) {
+        return true;
+      } else {
+        this.router.navigate(['login']);
+        return false;
+      }
+    }));
   }
 }

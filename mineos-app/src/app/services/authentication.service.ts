@@ -11,7 +11,9 @@ import { User } from '../models/user';
 })
 export class AuthenticationService {
   private currentUser: User | undefined = undefined;
-  private loggedIn$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(false);
+  private loggedIn$: BehaviorSubject<boolean> = new BehaviorSubject<boolean>(
+    false
+  );
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -19,8 +21,21 @@ export class AuthenticationService {
     return this.loggedIn$.asObservable();
   }
 
-  isAuthenticated(): boolean {
-    return this.loggedIn$.getValue();
+  isAuthenticated(): Observable<boolean> {
+    let loggedIn: boolean = this.loggedIn$.getValue();
+    if (loggedIn) {
+      return this.loggedIn$.asObservable();
+    } else {
+      // Check server to see if they have an active session.
+      return this.http.get<{ authenticated : false }>('/api/auth/is-authenticated').pipe(
+        map((result : { authenticated : boolean }) => {
+          if (result) {
+            this.loggedIn$.next(result.authenticated);
+          }
+          return result.authenticated;
+        })
+      );
+    }
   }
 
   loginUser(loginRequest: LoginRequest): Observable<boolean> {
