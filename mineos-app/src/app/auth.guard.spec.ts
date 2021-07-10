@@ -5,7 +5,9 @@ import { AuthenticationService } from './services/authentication.service';
 import { Router } from '@angular/router';
 import { LoginComponent } from './components/login/login.component';
 import { of, Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { MockLocationStrategy } from '@angular/common/testing';
+import { LocationStrategy } from '@angular/common';
+
 
 describe('AuthGuard', () => {
   let guard: AuthGuard;
@@ -18,7 +20,6 @@ describe('AuthGuard', () => {
     mockAuthenticationService = jasmine.createSpyObj<AuthenticationService>(
       'AuthenticationService',
       {
-        isLoggedIn: of(true),
         isAuthenticated: of(true),
       }
     );
@@ -34,6 +35,7 @@ describe('AuthGuard', () => {
       providers: [
         { provide: Router, useValue: routerMock },
         { provide: AuthenticationService, useValue: mockAuthenticationService },
+        { provide: LocationStrategy, useClass: MockLocationStrategy }
       ],
     });
     guard = TestBed.inject(AuthGuard);
@@ -70,7 +72,7 @@ describe('AuthGuard', () => {
   it('should allow the authenticated user to access child routes', fakeAsync(() => {
     let resut = false;
     (
-      guard.canActivate(routeMock, routeStateMock) as Observable<boolean>
+      guard.canActivateChild(routeMock, routeStateMock) as Observable<boolean>
     ).subscribe((data) => {
       resut = data;
     });

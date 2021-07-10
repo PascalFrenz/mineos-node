@@ -5,6 +5,12 @@ import { ThemeSwitcherService } from '../../services/theme-switcher.service';
 import { AuthenticationService } from '../../services/authentication.service';
 
 import { HeaderComponent } from './header.component';
+import { RouterTestingModule } from '@angular/router/testing';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { MockLocationStrategy } from '@angular/common/testing';
+import { LocationStrategy } from '@angular/common';
 
 describe('HeaderComponent', () => {
   let component: HeaderComponent;
@@ -16,7 +22,7 @@ describe('HeaderComponent', () => {
     mockAuthenticationService = jasmine.createSpyObj<AuthenticationService>(
       'AuthenticationService',
       {
-        isLoggedIn: of(false),
+        isAuthenticated: of(false),
         logoutUser: of(true),
       }
     );
@@ -26,13 +32,20 @@ describe('HeaderComponent', () => {
       ['isDarkMode', 'setMode']
     );
     mockThemeSwitcherService.isDarkMode.and.returnValue(of(false));
-    mockThemeSwitcherService.setMode.and.callFake(function (data:boolean) {});
+    mockThemeSwitcherService.setMode.and.callFake(function (data: boolean) {});
 
     await TestBed.configureTestingModule({
       declarations: [HeaderComponent],
       providers: [
         { provide: AuthenticationService, useValue: mockAuthenticationService },
         { provide: ThemeSwitcherService, useValue: mockThemeSwitcherService },
+        { provide: LocationStrategy, useClass: MockLocationStrategy },
+      ],
+      imports: [
+        RouterTestingModule,
+        MatButtonModule,
+        MatIconModule,
+        MatMenuModule,
       ],
     }).compileComponents();
   });

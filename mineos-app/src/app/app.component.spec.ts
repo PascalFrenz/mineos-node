@@ -1,12 +1,21 @@
 import { TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
 import { AppComponent } from './app.component';
+import { MockLocationStrategy } from '@angular/common/testing';
+import { LocationStrategy } from '@angular/common';
+import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
 
 describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
+      providers:[{ provide: LocationStrategy, useClass: MockLocationStrategy }],
       declarations: [
         AppComponent
       ],
+      imports:[RouterTestingModule],
+      // Note: CUSTOM_ELEMENTS_SCHEMA ignores parsing of sub components. It would be better to test the
+      // full parsing of the html. however <app-header> currently does not have any input/output to test.
+      schemas: [CUSTOM_ELEMENTS_SCHEMA]
     }).compileComponents();
   });
 
@@ -21,12 +30,4 @@ describe('AppComponent', () => {
     const app = fixture.componentInstance;
     expect(app.title).toEqual('mineos-app');
   });
-/*
-  it('should render title', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    fixture.detectChanges();
-    const compiled = fixture.nativeElement;
-    expect(compiled.querySelector('.content span').textContent).toContain('mineos-app app is running!');
-  });
-  */
 });

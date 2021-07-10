@@ -17,24 +17,20 @@ export class AuthenticationService {
 
   constructor(private http: HttpClient, private router: Router) {}
 
-  isLoggedIn(): Observable<boolean> {
-    return this.loggedIn$.asObservable();
-  }
-
   isAuthenticated(): Observable<boolean> {
     let loggedIn: boolean = this.loggedIn$.getValue();
     if (loggedIn) {
       return this.loggedIn$.asObservable();
     } else {
       // Check server to see if they have an active session.
-      return this.http.get<{ authenticated : false }>('/api/auth/is-authenticated').pipe(
-        map((result : { authenticated : boolean }) => {
-          if (result) {
+      return this.http
+        .get<{ authenticated: false }>('/api/auth/is-authenticated')
+        .pipe(
+          map((result: { authenticated: boolean }) => {
             this.loggedIn$.next(result.authenticated);
-          }
-          return result.authenticated;
-        })
-      );
+            return result.authenticated;
+          })
+        );
     }
   }
 

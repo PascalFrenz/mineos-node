@@ -14,7 +14,7 @@ export class HeaderComponent {
   darkMode:Observable<boolean>;
   userLoggedIn:Observable<boolean>;
   constructor(private authService: AuthenticationService, private themeSwitcher:ThemeSwitcherService) {
-    this.userLoggedIn = this.authService.isLoggedIn();
+    this.userLoggedIn = this.authService.isAuthenticated();
     this.darkMode = this.themeSwitcher.isDarkMode();
   }
 
