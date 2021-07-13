@@ -7,9 +7,7 @@ import { ThemeSwitcherService } from './services/theme-switcher.service';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
-  title = 'mineos-app';
-
   constructor(private themeSwitcher:ThemeSwitcherService){
-    themeSwitcher.initilizeTheme();
+    this.themeSwitcher.initilizeTheme();
   }
 }

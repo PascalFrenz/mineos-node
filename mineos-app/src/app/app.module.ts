@@ -2,7 +2,9 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule } from '@angular/common/http';
+import { SocketIoModule } from 'ngx-socket-io';
 
+// Material UI
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatCardModule } from '@angular/material/card';
 import { MatMenuModule } from '@angular/material/menu';
@@ -25,6 +27,7 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { ReactiveFormsModule } from '@angular/forms';
 
+// App Components
 import { AppComponent } from './app.component';
 import { LoginComponent } from './components/login/login.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
@@ -39,6 +42,10 @@ import { SchedulingComponent } from './components/scheduling/scheduling.componen
 import { LoggingComponent } from './components/logging/logging.component';
 import { ProfilesComponent } from './components/profiles/profiles.component';
 import { CalendarComponent } from './components/calendar/calendar.component';
+import { DashboardCardComponent } from './components/dashboard-card/dashboard-card.component';
+import { MiniCardComponent } from './components/mini-card/mini-card.component';
+import { CreateServerListComponent } from './components/create-server-list/create-server-list.component';
+import { ActiveServerListComponent } from './components/active-server-list/active-server-list.component';
 
 @NgModule({
   declarations: [
@@ -55,6 +62,10 @@ import { CalendarComponent } from './components/calendar/calendar.component';
     LoggingComponent,
     ProfilesComponent,
     CalendarComponent,
+    DashboardCardComponent,
+    MiniCardComponent,
+    CreateServerListComponent,
+    ActiveServerListComponent,
   ],
   imports: [
     AppRoutingModule,
@@ -81,7 +92,8 @@ import { CalendarComponent } from './components/calendar/calendar.component';
     MatRadioModule,
     MatExpansionModule,
     MatProgressSpinnerModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    SocketIoModule,
   ],
   providers: [],
   bootstrap: [AppComponent],

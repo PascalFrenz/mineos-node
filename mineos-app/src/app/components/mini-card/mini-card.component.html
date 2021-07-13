@@ -1,0 +1,13 @@
+<mat-card class="dashboard-card">
+  <mat-card-header>
+    <mat-card-title>
+      <h1 [className]="dataLength < 10 ? 'value-text large-text' : 'value-text'">{{cardData.value}}</h1>
+    </mat-card-title>
+    <div mat-card-avatar
+         class="card-icon">
+      <mat-icon [color]="cardData.iconColor"
+                class="avatar-icon">{{cardData.icon}}</mat-icon>
+    </div>
+  </mat-card-header>
+  <h3 class="title-text">{{cardData.title}}</h3>
+</mat-card>

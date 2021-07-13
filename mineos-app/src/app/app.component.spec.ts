@@ -3,19 +3,21 @@ import { RouterTestingModule } from '@angular/router/testing';
 import { AppComponent } from './app.component';
 import { MockLocationStrategy } from '@angular/common/testing';
 import { LocationStrategy } from '@angular/common';
-import { CUSTOM_ELEMENTS_SCHEMA } from '@angular/core';
+import { ThemeSwitcherService } from './services/theme-switcher.service';
+import { HeaderComponent } from './components/header/header.component';
+import { MockComponent } from 'ng-mocks';
 
 describe('AppComponent', () => {
+  let mockThemeSwitcherService: jasmine.SpyObj<ThemeSwitcherService>;
   beforeEach(async () => {
+    mockThemeSwitcherService = jasmine.createSpyObj<ThemeSwitcherService>('ThemeSwitcherService',['initilizeTheme']);
     await TestBed.configureTestingModule({
-      providers:[{ provide: LocationStrategy, useClass: MockLocationStrategy }],
-      declarations: [
-        AppComponent
+      providers: [
+        { provide: ThemeSwitcherService, useValue: mockThemeSwitcherService },
+        { provide: LocationStrategy, useClass: MockLocationStrategy },
       ],
-      imports:[RouterTestingModule],
-      // Note: CUSTOM_ELEMENTS_SCHEMA ignores parsing of sub components. It would be better to test the
-      // full parsing of the html. however <app-header> currently does not have any input/output to test.
-      schemas: [CUSTOM_ELEMENTS_SCHEMA]
+      declarations: [AppComponent, MockComponent(HeaderComponent)],
+      imports: [RouterTestingModule],
     }).compileComponents();
   });
 
@@ -25,9 +27,9 @@ describe('AppComponent', () => {
     expect(app).toBeTruthy();
   });
 
-  it(`should have as title 'mineos-app'`, () => {
+  it(`should initialze theme`, () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
-    expect(app.title).toEqual('mineos-app');
+    expect(mockThemeSwitcherService.initilizeTheme).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,0 +1,5 @@
+<div class='sidenav'>
+  <div>Begin</div>
+  <div *ngFor='let msg of messages | async'>{{ msg | json }}</div>
+  <div>End</div>
+</div>

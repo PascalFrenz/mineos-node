@@ -7,6 +7,9 @@ import {
   platformBrowserDynamicTesting
 } from '@angular/platform-browser-dynamic/testing';
 
+import { ngMocks } from 'ng-mocks';
+
+ngMocks.autoSpy('jasmine');
 declare const require: {
   context(path: string, deep?: boolean, filter?: RegExp): {
     keys(): string[];

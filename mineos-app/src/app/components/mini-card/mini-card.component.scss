@@ -1,0 +1,44 @@
+.dashboard-card {
+  position: absolute;
+  top: 15px;
+  left: 25px;
+  right: 15px;
+  bottom: 15px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.fill {
+  flex: 1 1 auto;
+}
+.value-text {
+  text-align: right;
+  width: 100%;
+}
+
+.mat-card-header-text {
+  width: 100%;
+}
+
+.large-text{
+  font-size: 3em;
+}
+.title-text {
+  font-weight: 400;
+  margin: 0;
+  font-size: 2em;
+  text-align: right;
+  vertical-align: bottom;
+  width: 100%;
+}
+.mat-card-avatar{
+  flex-grow: 1;
+}
+.avatar-icon {
+  margin-left: 15px;
+  transform: scale(3);
+}
+
+.card-icon {
+  margin-right: 5px;
+}
