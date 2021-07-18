@@ -1,20 +1,20 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { CreateServerListComponent } from './create-server-list.component';
+import { UptimeCardComponent } from './uptime-card.component';
 
-describe('CreateServerListComponent', () => {
-  let component: CreateServerListComponent;
-  let fixture: ComponentFixture<CreateServerListComponent>;
+describe('UptimeCardComponent', () => {
+  let component: UptimeCardComponent;
+  let fixture: ComponentFixture<UptimeCardComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ CreateServerListComponent ]
+      declarations: [ UptimeCardComponent ]
     })
     .compileComponents();
   });
 
   beforeEach(() => {
-    fixture = TestBed.createComponent(CreateServerListComponent);
+    fixture = TestBed.createComponent(UptimeCardComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

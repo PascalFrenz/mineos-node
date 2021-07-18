@@ -1,64 +1,53 @@
-import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
-import { Heartbeat } from '../models/heartbeat.model';
+import { Injectable, OnDestroy } from '@angular/core';
+import { BehaviorSubject, Observable, of, Subscription } from 'rxjs';
+import { tap } from 'rxjs/operators';
 import { SocketioWrapper } from './socketio-wrapper';
+import { Socket, SocketIoConfig } from 'ngx-socket-io';
+import { ServerHeartbeat } from '../models/server-heartbeat';
+import { HostHeartbeat } from '../models/host-heartbeat';
 
 @Injectable({
   providedIn: 'root',
 })
-export class MineosSocketService {
+export class MineosSocketService implements OnDestroy {
+  serverNames$: BehaviorSubject<string[]> = new BehaviorSubject<string[]>([]);
+  sub$: Subscription;
+  server: Map<string, SocketioWrapper> = new Map<string, SocketioWrapper>();
 
-  username: any;
-  commit_msg: string = '';
-  git_commit: any;
-  host_heartbeat: any;
-  profiles: any;
-  buildtools_jar: any;
-  papertools_jar: any;
-  users: any;
-  groups: any;
-  archive_list: any;
-  spigot_list: any;
-  locale_list: any;
-  build_jar_log: any;
-  columns: any;
-
-  loadavg = [];
-  loadavg_options = {
-    // element: $("#load_averages"),
-    fallback_xaxis_max: 1,
-    series: {
-      lines: {
-        show: true,
-        fill: 0.5,
-      },
-      shadowSize: 0,
-    },
-    yaxis: { min: 0, max: 1 },
-    xaxis: { min: 0, max: 30, show: false },
-    grid: { borderWidth: 0 },
-  };
-
-  constructor(private socket: SocketioWrapper) {}
-
-  public sendMessage(message: string) {
-    console.log(`host_heartbeat ${message}`);
-    this.socket.emit('host_heartbeat', message);
+  constructor(private socket: Socket) {
+    this.socket = new SocketioWrapper({ url: '', options: {} });
+    this.sub$ = this.trackServer().subscribe((serverName) => {
+      console.log(`connecting to namespace ${serverName}`)
+      if (!this.server.has(serverName)) {
+        this.server.set(
+          serverName,
+          new SocketioWrapper({
+            url: `/${serverName}`,
+            options: {},
+          })
+        );
+        let serverNameList = this.serverNames$.value;
+        serverNameList.push(serverName);
+        this.serverNames$.next(serverNameList);
+      }
+    });
   }
-  // hostHeartbeat() {
-  //   return this.socket.fromEvent('host_heartbeat').pipe(
-  //     map((data: any) => {
-  //       console.log(`getMessage() received ${data}`);
-  //       return [data];
-  //     })
-  //   );
-  // }
+  serverList(): Observable<string[]> {
+    return this.serverNames$.asObservable();
+  }
+
+  ngOnDestroy(): void {
+    this.sub$.unsubscribe();
+    this.server.forEach((namespace) => {
+      namespace.disconnect();
+    });
+    this.socket.disconnect();
+  }
 
   /* socket handlers */
 
   whoami() {
-    return this.socket.fromEvent('whoami')
+    return this.socket.fromEvent('whoami');
     // .pipe(
     //   map((username) => {
     //     console.log(`whoami() received ${username}`);
@@ -79,8 +68,47 @@ export class MineosSocketService {
     // );
   }
 
-  hostHeartbeat() {
-    return this.socket.fromEvent('host_heartbeat');
+  hostHeartbeat() : Observable<HostHeartbeat>{
+    return this.socket.fromEvent<HostHeartbeat>('host_heartbeat');
+    // .pipe(
+    //   map((data) => {
+    //     console.log(`hostHeartbeat() received ${data}`);
+    //     this.host_heartbeat = data;
+    //     // this.update_loadavg(data.loadavg);
+    //   })
+    // );
+  }
+
+  serverHeartbeat(serverName: string): Observable<ServerHeartbeat> {
+    let serverSocket = this.server.get(serverName);
+    if (serverSocket)
+      return serverSocket.fromEvent<ServerHeartbeat>('heartbeat');
+    else {
+      console.error('not joined to server room');
+      return of(new ServerHeartbeat());
+    }
+    // .pipe(
+    //   map((data) => {
+    //     console.log(`hostHeartbeat() received ${data}`);
+    //     this.host_heartbeat = data;
+    //     // this.update_loadavg(data.loadavg);
+    //   })
+    // );
+  }
+
+  trackServer(): Observable<string> {
+    return this.socket.fromEvent<string>('track_server');
+    // .pipe(
+    //   map((data) => {
+    //     console.log(`hostHeartbeat() received ${data}`);
+    //     this.host_heartbeat = data;
+    //     // this.update_loadavg(data.loadavg);
+    //   })
+    // );
+  }
+
+  untrackServer() {
+    return this.socket.fromEvent('untrack_server');
     // .pipe(
     //   map((data) => {
     //     console.log(`hostHeartbeat() received ${data}`);

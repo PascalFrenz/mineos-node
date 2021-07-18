@@ -2,7 +2,9 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule } from '@angular/common/http';
-import { SocketIoModule } from 'ngx-socket-io';
+import { SocketIoConfig, SocketIoModule } from 'ngx-socket-io';
+import { MomentModule } from 'ngx-moment';
+import { ChartsModule } from 'ng2-charts';
 
 // Material UI
 import { MatGridListModule } from '@angular/material/grid-list';
@@ -42,10 +44,15 @@ import { SchedulingComponent } from './components/scheduling/scheduling.componen
 import { LoggingComponent } from './components/logging/logging.component';
 import { ProfilesComponent } from './components/profiles/profiles.component';
 import { CalendarComponent } from './components/calendar/calendar.component';
-import { DashboardCardComponent } from './components/dashboard-card/dashboard-card.component';
-import { MiniCardComponent } from './components/mini-card/mini-card.component';
-import { CreateServerListComponent } from './components/create-server-list/create-server-list.component';
 import { ActiveServerListComponent } from './components/active-server-list/active-server-list.component';
+import { ServerCardComponent } from './components/mini-cards/server-card/server-card.component';
+import { PlayerCardComponent } from './components/mini-cards/player-card/player-card.component';
+import { UptimeCardComponent } from './components/mini-cards/uptime-card/uptime-card.component';
+import { MemoryCardComponent } from './components/mini-cards/memory-card/memory-card.component';
+import { BytesToMegabytesPipe } from './pipes/bytes-to-megabytes.pipe';
+import { LoadAveragesComponent } from './components/load-averages/load-averages.component';
+
+const config: SocketIoConfig = { url: '', options: {} };
 
 @NgModule({
   declarations: [
@@ -62,16 +69,21 @@ import { ActiveServerListComponent } from './components/active-server-list/activ
     LoggingComponent,
     ProfilesComponent,
     CalendarComponent,
-    DashboardCardComponent,
-    MiniCardComponent,
-    CreateServerListComponent,
     ActiveServerListComponent,
+    ServerCardComponent,
+    PlayerCardComponent,
+    UptimeCardComponent,
+    MemoryCardComponent,
+    BytesToMegabytesPipe,
+    LoadAveragesComponent
   ],
   imports: [
     AppRoutingModule,
     BrowserModule,
     BrowserAnimationsModule,
     HttpClientModule,
+    MomentModule,
+    ChartsModule,
     MatGridListModule,
     MatCardModule,
     MatMenuModule,
@@ -93,7 +105,7 @@ import { ActiveServerListComponent } from './components/active-server-list/activ
     MatExpansionModule,
     MatProgressSpinnerModule,
     ReactiveFormsModule,
-    SocketIoModule,
+    SocketIoModule.forRoot(config),
   ],
   providers: [],
   bootstrap: [AppComponent],

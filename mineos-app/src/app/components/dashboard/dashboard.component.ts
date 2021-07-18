@@ -13,12 +13,6 @@ import { CardLayout } from '../../models/card-layout';
   styleUrls: ['./dashboard.component.scss'],
 })
 export class DashboardComponent {
-  miniCardData = [
-    { title: 'Servers Running', value: '2', iconColor: '', icon: 'check_circle' },
-    { title: 'Players Online', value: '0', iconColor: '', icon: 'people_outline' },
-    { title: 'Uptime', value: '43 days 10 hours 57 minutes', iconColor: '', icon: 'av_timer' },
-    { title: 'RAM Free', value: '716MB', iconColor: '', icon: 'show_chart' },
-  ];
   /** Based on the screen size, switch from standard to two column per row */
   cardLayout$:Observable<CardLayout>;
 
