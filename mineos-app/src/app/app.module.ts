@@ -2,7 +2,6 @@ import { NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { HttpClientModule } from '@angular/common/http';
-import { SocketIoConfig, SocketIoModule } from 'ngx-socket-io';
 import { MomentModule } from 'ngx-moment';
 import { ChartsModule } from 'ng2-charts';
 
@@ -51,8 +50,6 @@ import { UptimeCardComponent } from './components/mini-cards/uptime-card/uptime-
 import { MemoryCardComponent } from './components/mini-cards/memory-card/memory-card.component';
 import { BytesToMegabytesPipe } from './pipes/bytes-to-megabytes.pipe';
 import { LoadAveragesComponent } from './components/load-averages/load-averages.component';
-
-const config: SocketIoConfig = { url: '', options: {} };
 
 @NgModule({
   declarations: [
@@ -104,8 +101,7 @@ const config: SocketIoConfig = { url: '', options: {} };
     MatRadioModule,
     MatExpansionModule,
     MatProgressSpinnerModule,
-    ReactiveFormsModule,
-    SocketIoModule.forRoot(config),
+    ReactiveFormsModule
   ],
   providers: [],
   bootstrap: [AppComponent],

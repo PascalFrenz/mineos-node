@@ -1,16 +1,20 @@
-import { TestBed } from '@angular/core/testing';
-
+import { of } from 'rxjs';
 import { MinecraftServerService } from './minecraft-server.service';
+import { SocketioWrapper } from './socketio-wrapper';
 
 describe('MinecraftServerService', () => {
-  let service: MinecraftServerService;
+  let mockSocket: jasmine.SpyObj<SocketioWrapper>;
 
   beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(MinecraftServerService);
+    mockSocket = jasmine.createSpyObj<SocketioWrapper>('SocketioWrapper', [
+      'fromEvent',
+      'emit',
+    ]);
+    mockSocket.fromEvent.and.returnValue(of());
+    mockSocket.emit.and.callFake(() => {});
   });
 
   it('should be created', () => {
-    expect(service).toBeTruthy();
+    expect(new MinecraftServerService('Test', mockSocket)).toBeTruthy();
   });
 });

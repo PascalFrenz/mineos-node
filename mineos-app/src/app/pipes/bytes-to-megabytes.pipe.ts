@@ -7,10 +7,8 @@ export class BytesToMegabytesPipe implements PipeTransform {
   transform(value: number | null, ...args: unknown[]): string | null {
     if (value === null || value === undefined) return null;
     else {
-      console.log(`converting value => ${value}`)
       let bytes: number = value;
-      if (bytes == 0) return '0B';
-      else if (bytes < 1024) return bytes + 'B';
+      if (bytes < 1024) return bytes + 'B';
 
       var k = 1024;
       var sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];

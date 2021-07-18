@@ -15,7 +15,6 @@ export class PlayerCardComponent implements OnDestroy {
   activePlayers$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
   constructor(private mineosSocket: MineosSocketService) {
     this.mineosSocket.serverList().subscribe((serverList) => {
-      console.log(`current server list ${JSON.stringify(serverList)}`);
       serverList.forEach((serverName) => {
         if (!this.heartbeats.has(serverName)) {
           this.subscribeToHeartbeat(serverName);

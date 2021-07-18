@@ -1,7 +1,6 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { BehaviorSubject, Observable, Subscription } from 'rxjs';
-import { tap } from 'rxjs/operators';
 import { ServerHeartbeat } from 'src/app/models/server-heartbeat';
+import { Component, OnDestroy } from '@angular/core';
+import { BehaviorSubject, Subscription } from 'rxjs';
 import { MineosSocketService } from 'src/app/services/mineos-socket.service';
 
 @Component({

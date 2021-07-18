@@ -23,10 +23,12 @@ import { from, Observable } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
 import { CardLayout } from 'src/app/models/card-layout';
 import { MockComponent } from 'ng-mocks';
-import { MiniCardComponent } from '../mini-card/mini-card.component';
 import { ActiveServerListComponent } from '../active-server-list/active-server-list.component';
-import { CreateServerListComponent } from '../create-server-list/create-server-list.component';
-import { DashboardCardComponent } from '../dashboard-card/dashboard-card.component';
+import { MemoryCardComponent } from '../mini-cards/memory-card/memory-card.component';
+import { PlayerCardComponent } from '../mini-cards/player-card/player-card.component';
+import { ServerCardComponent } from '../mini-cards/server-card/server-card.component';
+import { UptimeCardComponent } from '../mini-cards/uptime-card/uptime-card.component';
+import { LoadAveragesComponent } from '../load-averages/load-averages.component';
 
 describe('DashboardComponent', () => {
   let component: DashboardComponent;
@@ -60,9 +62,11 @@ describe('DashboardComponent', () => {
         ],
         declarations: [
           DashboardComponent,
-          MockComponent(MiniCardComponent),
-          MockComponent(DashboardCardComponent),
-          MockComponent(CreateServerListComponent),
+          MockComponent(MemoryCardComponent),
+          MockComponent(PlayerCardComponent),
+          MockComponent(ServerCardComponent),
+          MockComponent(UptimeCardComponent),
+          MockComponent(LoadAveragesComponent),
           MockComponent(ActiveServerListComponent),
         ],
         imports: [
@@ -109,16 +113,4 @@ describe('DashboardComponent', () => {
     tick();
     expect(result?.columns).toEqual(2);
   }));
-
-  it('should have 4 mini cards', () => {
-    fixture = TestBed.createComponent(DashboardComponent);
-    component = fixture.componentInstance;
-    fixture.detectChanges();
-    expect(component.miniCardData.map((d) => d.title)).toEqual([
-      'Servers Running',
-      'Players Online',
-      'Uptime',
-      'RAM Free',
-    ]);
-  });
 });
