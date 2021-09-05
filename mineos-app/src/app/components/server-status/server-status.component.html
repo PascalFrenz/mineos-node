@@ -1,1 +1,81 @@
-<p>server-status works!</p>
+<server-details></server-details>
+
+<!-- Actions Section-->
+<mat-card>
+    <mat-card-title>Actions</mat-card-title>
+    <mat-card-content>Actions allows you to start, stop, restart and kill the server.</mat-card-content>
+    <mat-card-actions align="end">
+      <button mat-button>Start Server</button>
+      <button mat-button>Stop Server</button>
+    </mat-card-actions>
+  </mat-card>
+  
+  <!-- Profile Section -->
+  <mat-card>
+    <mat-card-title>Profile</mat-card-title>
+    <mat-card-content>Change the email address you want associated with your account.</mat-card-content>
+    <mat-card-actions>
+      <mat-select>
+        <mat-option value="option1">option1</mat-option>
+        <mat-option value="option2">option2</mat-option>
+        <mat-option value="option3">option3</mat-option>
+      </mat-select>
+      <button mat-button>Update Profile</button>
+      <button mat-button>Copy profile to live server files</button>
+    </mat-card-actions>
+  </mat-card>
+  
+  <!-- Save All Section-->
+  <mat-card>
+    <mat-card-title>Save All</mat-card-title>
+    <mat-card-content>Minutes between commititting world to disk via 'save-all' (empty to disable).</mat-card-content>
+    <mat-card-actions>
+      <mat-form-field appearance="standard">
+        <mat-label>Minutes</mat-label>
+        <input matInput placeholder="60">      
+      </mat-form-field>
+      <button mat-button>Set World Save Frequency</button>
+    </mat-card-actions>
+  </mat-card>
+  
+  <!-- Broadcast to LAN Section -->
+  <mat-card>
+    <mat-card-title>Broadcast to LAN</mat-card-title>
+    <mat-card-content>Let other computers on the Local Area Network (LAN) know that there is a Minecraft Multiplayer game available.  
+      That way, other Minecraft players on the same home network as you will see the game pop up on their copy of Minecraft</mat-card-content>
+    <mat-card-actions align="end">
+      <mat-slide-toggle></mat-slide-toggle>
+    </mat-card-actions>
+  </mat-card>
+  
+  <!-- Start Server on Boot Section-->
+  <mat-card>
+    <mat-card-title>Start server on boot</mat-card-title>
+    <mat-card-content>Let other computers on the Local Area Network (LAN) know that there is a Minecraft Multiplayer game available.  
+      That way, other Minecraft players on the same home network as you will see the game pop up on their copy of Minecraft</mat-card-content>
+    <mat-card-actions align="end">
+      <mat-slide-toggle></mat-slide-toggle>
+    </mat-card-actions>
+  </mat-card>
+  
+  <!-- Ownership Section -->
+  <mat-card>
+    <mat-card-title>Ownership</mat-card-title>
+    <mat-card-content align="center">
+      <mat-form-field aria-disabled="true" appearance="standard">
+        <mat-label>Server Owner</mat-label>
+        <input matInput placeholder="60">      
+      </mat-form-field>
+      <mat-form-field appearance="standard">
+        <mat-label>Group Owner</mat-label>
+        <mat-select>
+          <mat-option value="option1">option1</mat-option>
+          <mat-option value="option2">option2</mat-option>
+          <mat-option value="option3">option3</mat-option>
+        </mat-select>      
+      </mat-form-field>
+    </mat-card-content>
+    <mat-card-actions>
+      <button mat-button>Change Owner</button>
+    </mat-card-actions>
+  </mat-card>

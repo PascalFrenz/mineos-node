@@ -50,7 +50,7 @@ import { UptimeCardComponent } from './components/mini-cards/uptime-card/uptime-
 import { MemoryCardComponent } from './components/mini-cards/memory-card/memory-card.component';
 import { BytesToMegabytesPipe } from './pipes/bytes-to-megabytes.pipe';
 import { LoadAveragesComponent } from './components/load-averages/load-averages.component';
-import { ServerStatusComponent } from './server-status/server-status.component';
+import { ServerStatusComponent } from './components/server-status/server-status.component';
 
 @NgModule({
   declarations: [
