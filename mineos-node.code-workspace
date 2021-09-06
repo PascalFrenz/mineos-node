@@ -1,0 +1,22 @@
+{
+  "folders": [
+    {
+      "name": "MineOS",
+      "path": "."
+    }
+  ],
+  "settings": {
+    "eslint.options": {
+      "extensions": [".js", ".ts", ".html"]
+    },
+
+    "eslint.validate": [
+      "javascript",
+      "javascriptreact",
+      "typescript",
+      "typescriptreact",
+      "html"
+    ],
+    "markiscodecoverage.searchCriteria": "mineos-app/coverage/lcov*.info"
+  }
+}
