@@ -1,65 +1,24 @@
 <ng-container *ngIf="userLoggedIn | async">
-  <div role="heading">
-    <span>MineOS</span>
-    <div>
-      <a [routerLink]="['dashboard']">
+  <div role="heading" class="flex bg-emerald-600 dark:bg-slate-700 justify-between items-center min-h-fit py-2 px-4">
+    <span class="text-white text-2xl mr-8">MineOS</span>
+    <div class="flex gap-6 justify-between">
+      <a [routerLink]="['dashboard']" class="px-2 py-1 rounded text-white" routerLinkActive="border-white border-2">
         Dashboard
       </a>
-      <a [routerLink]="['profiles']">
+      <a [routerLink]="['profiles']" class="px-2 py-1 rounded text-white" routerLinkActive="border-white border-2">
         Profiles
       </a>
-      <a [routerLink]="['server-details']">
+      <a [routerLink]="['server-details']" class="px-2 py-1 rounded text-white" routerLinkActive="border-white border-2">
         Servers
       </a>
-      <a [routerLink]="['calendar']">
+      <a [routerLink]="['calendar']" class="px-2 py-1 rounded text-white" routerLinkActive="border-white border-2">
         Calendar
       </a>
       <a href="https://minecraft.codeemo.com/mineoswiki/index.php"
+         class="px-2 py-1 rounded text-white"
          target="_blank">Documentation
       </a>
     </div>
-    <button aria-label="MineOS menu">
-      <div>more_vert</div>
-    </button>
-    <div>
-      <button>
-        <div>source</div>
-        <span>git commit (commitHash)</span>
-      </button>
-      <ng-container *ngIf="darkMode | async; then light; else dark"></ng-container>
-      <button >
-        <div>dns</div>
-        <span>Refresh Server List</span>
-      </button>
-      <button >
-        <div>sync</div>
-        <span>Refresh Profile List</span>
-      </button>
-      <a href="/admin/index.html">
-        <div>exit_to_app</div>
-        <span>Legacy interface</span>
-      </a>
-      <button >
-        <div>translate</div>
-        <span>Change Localization</span>
-      </button>
-      <button
-              (click)="logout()">
-        <div>logout</div>
-        <span>LOGOFF</span>
-      </button>
-    </div>
+    <div class="flex-grow"></div>
   </div>
 </ng-container>
-<ng-template #dark>
-  <button (click)="changeMode(true)">
-    <div>dark_mode</div>
-    <span>Dark Mode</span>
-  </button>
-</ng-template>
-<ng-template #light>
-  <button (click)="changeMode(false)">
-    <div>light_mode</div>
-    <span>Light Mode</span>
-  </button>
-</ng-template>
