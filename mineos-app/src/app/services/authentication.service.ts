@@ -7,7 +7,7 @@ import { LoginRequest } from '../models/login-request';
 import { User } from '../models/user';
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class AuthenticationService {
   private currentUser: User | undefined = undefined;
@@ -18,20 +18,13 @@ export class AuthenticationService {
   constructor(private http: HttpClient, private router: Router) {}
 
   isAuthenticated(): Observable<boolean> {
-    let loggedIn: boolean = this.loggedIn$.getValue();
-    if (loggedIn) {
-      return this.loggedIn$.asObservable();
-    } else {
-      // Check server to see if they have an active session.
-      return this.http
-        .get<{ authenticated: false }>('/api/auth/is-authenticated')
-        .pipe(
-          map((result: { authenticated: boolean }) => {
-            this.loggedIn$.next(result.authenticated);
-            return result.authenticated;
-          })
-        );
-    }
+    return this.http
+      .get<{ authenticated: boolean }>('/api/auth/is-authenticated')
+      .pipe(
+        map((result: { authenticated: boolean }) => {
+          return result.authenticated;
+        })
+      );
   }
 
   loginUser(loginRequest: LoginRequest): Observable<boolean> {
@@ -43,7 +36,7 @@ export class AuthenticationService {
       map((user) => {
         this.currentUser = user;
         this.loggedIn$.next(true);
-        this.router.navigate(['dashboard']);
+        this.router.navigate([ 'dashboard' ]);
         return true;
       })
     );
@@ -54,7 +47,7 @@ export class AuthenticationService {
       map((user) => {
         this.currentUser = undefined;
         this.loggedIn$.next(false);
-        this.router.navigate(['login']);
+        this.router.navigate([ 'login' ]);
         return true;
       })
     );
