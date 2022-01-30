@@ -1,12 +1,12 @@
-import {Component} from '@angular/core';
-import {Observable} from 'rxjs';
-import {ThemeSwitcherService} from '../../services/theme-switcher.service';
-import {AuthenticationService} from '../../services/authentication.service';
+import { Component } from '@angular/core';
+import { Observable } from 'rxjs';
+import { AuthenticationService } from '../../services/authentication.service';
+import { ThemeSwitcherService } from '../../services/theme-switcher.service';
 
 @Component({
   selector: 'app-header',
   templateUrl: './header.component.html',
-  styleUrls: ['./header.component.scss'],
+  styleUrls: [],
 })
 export class HeaderComponent {
   darkMode:Observable<boolean>;
