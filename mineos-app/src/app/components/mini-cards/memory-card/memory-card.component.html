@@ -1,11 +1,2 @@
-<div>
-  <div>
-    <div>
-      <h1>{{serverMemory$ | async | bytes_to_mb}}</h1>
-    </div>
-    <div>
-      <p>icon</p>
-    </div>
-  </div>
-  <h3>RAM Free</h3>
-</div>
+<app-mini-card [icon]="faMemory" color="green" [value]="(serverMemory$ | async | bytes_to_mb) ?? 'n/a'" text="RAM Free"></app-mini-card>
+
