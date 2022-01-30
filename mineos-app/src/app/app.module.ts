@@ -30,6 +30,7 @@ import { SchedulingComponent } from './components/scheduling/scheduling.componen
 import { ServerDetailsComponent } from './components/server-details/server-details.component';
 import { StatusComponent } from './components/status/status.component';
 import { BytesToMegabytesPipe } from './pipes/bytes-to-megabytes.pipe';
+import { CardComponent } from './components/card/card.component';
 
 @NgModule({
   declarations: [
@@ -53,7 +54,8 @@ import { BytesToMegabytesPipe } from './pipes/bytes-to-megabytes.pipe';
     MemoryCardComponent,
     BytesToMegabytesPipe,
     LoadAveragesComponent,
-    MiniCardComponent
+    MiniCardComponent,
+    CardComponent
   ],
   imports: [
     AppRoutingModule,
