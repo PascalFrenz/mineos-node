@@ -1,30 +1,30 @@
 import { Component, OnDestroy } from '@angular/core';
-import { faClock } from '@fortawesome/free-solid-svg-icons';
+import { faMemory } from '@fortawesome/free-solid-svg-icons';
 import { BehaviorSubject, Subscription } from 'rxjs';
 import { HostHeartbeat } from 'src/app/models/host-heartbeat';
 import { MineosSocketService } from 'src/app/services/mineos-socket.service';
 
 @Component({
-  selector: 'app-uptime-card',
+  selector: 'app-memory-card',
   template: `
-      <app-mini-card [icon]="faClock"
-                     [value]="(serverUptime$ | async | amDuration:'seconds') ?? 'n/a'"
-                     color="black"
-                     text="Uptime">
+      <app-mini-card [icon]="faMemory"
+                     [value]="(serverMemory$ | async | bytes_to_mb) ?? 'n/a'"
+                     color="green"
+                     text="RAM Free">
       </app-mini-card>
   `,
   styleUrls: []
 })
-export class UptimeCardComponent implements OnDestroy {
+export class MemoryCardComponent implements OnDestroy {
 
-  faClock = faClock;
+  faMemory = faMemory;
 
   sub$: Subscription;
-  serverUptime$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
+  serverMemory$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
 
   constructor(private mineosSocket: MineosSocketService) {
     this.sub$ = this.mineosSocket.hostHeartbeat().subscribe((data: HostHeartbeat) => {
-      this.serverUptime$.next(data.uptime);
+      this.serverMemory$.next(data.freemem);
     })
   }
 

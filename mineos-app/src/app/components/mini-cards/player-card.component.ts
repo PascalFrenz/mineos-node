@@ -1,13 +1,15 @@
-import {Component, OnDestroy} from '@angular/core';
-import {faUsers} from '@fortawesome/free-solid-svg-icons';
-import {BehaviorSubject, Subscription} from 'rxjs';
-import {ServerHeartbeat} from 'src/app/models/server-heartbeat';
-import {MineosSocketService} from 'src/app/services/mineos-socket.service';
+import { Component, OnDestroy } from '@angular/core';
+import { faUsers } from '@fortawesome/free-solid-svg-icons';
+import { BehaviorSubject, Subscription } from 'rxjs';
+import { ServerHeartbeat } from 'src/app/models/server-heartbeat';
+import { MineosSocketService } from 'src/app/services/mineos-socket.service';
 
 @Component({
   selector: 'app-player-card',
-  templateUrl: './player-card.component.html',
-  styleUrls: [],
+  template: `
+      <app-mini-card [icon]="faUsers" [value]="(activePlayers$ | async) ?? 'n/a'" text="Players Online"></app-mini-card>
+  `,
+  styleUrls: []
 })
 export class PlayerCardComponent implements OnDestroy {
 
@@ -16,6 +18,7 @@ export class PlayerCardComponent implements OnDestroy {
   heartbeats: Map<string, Subscription> = new Map<string, Subscription>();
   playerCountMap: Map<string, number> = new Map<string, number>();
   activePlayers$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
+
   constructor(private mineosSocket: MineosSocketService) {
     this.mineosSocket.serverList().subscribe((serverList) => {
       serverList.forEach((serverName) => {
