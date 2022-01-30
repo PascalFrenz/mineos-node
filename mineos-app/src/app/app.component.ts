@@ -1,5 +1,4 @@
 import { Component } from '@angular/core';
-import { ThemeSwitcherService } from './services/theme-switcher.service';
 
 @Component({
   selector: 'app-root',
@@ -7,7 +6,4 @@ import { ThemeSwitcherService } from './services/theme-switcher.service';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
-  constructor(private themeSwitcher:ThemeSwitcherService){
-    this.themeSwitcher.initilizeTheme();
-  }
 }

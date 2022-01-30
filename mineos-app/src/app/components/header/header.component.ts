@@ -1,26 +1,28 @@
-import { Component } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Observable } from 'rxjs';
 import { AuthenticationService } from '../../services/authentication.service';
-import { ThemeSwitcherService } from '../../services/theme-switcher.service';
 
 @Component({
   selector: 'app-header',
   templateUrl: './header.component.html',
-  styleUrls: [],
+  styleUrls: []
 })
-export class HeaderComponent {
-  darkMode:Observable<boolean>;
-  userLoggedIn:Observable<boolean>;
-  constructor(private authService: AuthenticationService, private themeSwitcher:ThemeSwitcherService) {
+export class HeaderComponent implements OnInit, OnDestroy {
+  userLoggedIn: Observable<boolean>;
+
+  constructor(private authService: AuthenticationService) {
     this.userLoggedIn = this.authService.isAuthenticated();
-    this.darkMode = this.themeSwitcher.isDarkMode();
+  }
+
+  ngOnInit(): void {
+
+  }
+
+  ngOnDestroy(): void {
+
   }
 
   logout() {
     this.authService.logoutUser().subscribe();
-  }
-
-  public changeMode(isDark:boolean):void{
-    this.themeSwitcher.setMode(isDark);
   }
 }
