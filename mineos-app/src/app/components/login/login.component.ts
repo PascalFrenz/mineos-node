@@ -1,24 +1,27 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder, FormGroup } from '@angular/forms';
-import { AuthenticationService } from '../../services/authentication.service';
+import { FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { faSignInAlt } from '@fortawesome/free-solid-svg-icons';
 import { LoginRequest } from '../../models/login-request';
+import { AuthenticationService } from '../../services/authentication.service';
 
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.scss'],
+  styleUrls: [],
 })
 export class LoginComponent implements OnInit {
-  public hidePassword: boolean = false;
+  faSignInAlt = faSignInAlt;
+
+  public hidePassword: boolean = true;
   public loginForm: FormGroup;
 
   constructor(
     private authService: AuthenticationService,
-    private formBuilder: FormBuilder
+    private fb: FormBuilder
   ) {
-    this.loginForm = this.formBuilder.group({
-      username: '',
-      password: '',
+    this.loginForm = this.fb.group({
+      username: ['', Validators.required],
+      password: ['', Validators.required],
     });
   }
 
