@@ -1,11 +1,1 @@
-<div>
-  <div>
-    <div>
-      <h1>{{activeServers$ | async}}</h1>
-    </div>
-    <div>
-      <p>icon</p>
-    </div>
-  </div>
-  <h3>Servers Running</h3>
-</div>
+<app-mini-card [icon]="faCheckCircle" [value]="(activeServers$ | async) ?? 'n/a'" text="Servers Running"></app-mini-card>

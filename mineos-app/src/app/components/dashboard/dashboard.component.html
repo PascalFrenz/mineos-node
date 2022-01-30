@@ -1,22 +1,14 @@
-<div>
-  <h1>Dashboard</h1>
-  <div>
-    <div>
-      <app-server-card></app-server-card>
-    </div>
-    <div>
-      <app-player-card></app-player-card>
-    </div>
-    <div>
-      <app-uptime-card></app-uptime-card>
-    </div>
-    <div>
-      <app-memory-card></app-memory-card>
-    </div>
-    <div>
+<div class="mx-32 mt-8">
+  <div class="w-full flex grid grid-cols-4 gap-8">
+    <app-server-card></app-server-card>
+    <app-player-card></app-player-card>
+    <app-uptime-card></app-uptime-card>
+    <app-memory-card></app-memory-card>
+
+    <div class="col-span-4">
       <app-load-averages></app-load-averages>
     </div>
-    <div>
+    <div class="col-span-4">
       <app-active-server-list></app-active-server-list>
     </div>
   </div>
