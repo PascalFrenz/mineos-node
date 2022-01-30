@@ -1,8 +1,33 @@
-<div>
-  <div>
-    <h1>Active Servers</h1>
-  </div>
-  <div>
-    table
-  </div>
-</div>
+<app-card>
+  <h1>Active Servers</h1>
+  <table class="table-auto border-collapse w-full mt-8">
+    <thead>
+    <tr>
+      <th class="py-2 border-b border-gray-300 text-left pl-4 font-medium text-gray-500" *ngFor="let col of tableCols">{{col}}</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+      <td class="text-left pl-4 py-4">MyServer</td>
+      <td class="text-left pl-4 py-4">profile</td>
+      <td class="text-left pl-4 py-4">25565</td>
+      <td class="text-left pl-4 py-4">test</td>
+      <td class="text-left pl-4 py-4">6.0 GB</td>
+    </tr>
+    <tr>
+      <td class="text-left pl-4 py-4">MyServer</td>
+      <td class="text-left pl-4 py-4">profile</td>
+      <td class="text-left pl-4 py-4">25565</td>
+      <td class="text-left pl-4 py-4">test</td>
+      <td class="text-left pl-4 py-4">6.0 GB</td>
+    </tr>
+    <tr>
+      <td class="text-left pl-4 py-4">MyServer</td>
+      <td class="text-left pl-4 py-4">profile</td>
+      <td class="text-left pl-4 py-4">25565</td>
+      <td class="text-left pl-4 py-4">test</td>
+      <td class="text-left pl-4 py-4">6.0 GB</td>
+    </tr>
+    </tbody>
+  </table>
+</app-card>

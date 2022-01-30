@@ -1,16 +1,15 @@
-import { ServerHeartbeat } from 'src/app/models/server-heartbeat';
 import { Component, OnDestroy } from '@angular/core';
 import { BehaviorSubject, Subscription } from 'rxjs';
+import { ServerHeartbeat } from 'src/app/models/server-heartbeat';
 import { MineosSocketService } from 'src/app/services/mineos-socket.service';
 
 @Component({
   selector: 'app-active-server-list',
   templateUrl: './active-server-list.component.html',
-  styleUrls: ['./active-server-list.component.scss'],
+  styleUrls: []
 })
 export class ActiveServerListComponent implements OnDestroy {
-  columnsToDisplay = ['Server', 'Profile', 'Port', 'Status', 'Memory'];
-  iconColor: string = '';
+  tableCols = [ 'Server', 'Profile', 'Port', 'Status', 'Memory' ];
   activeServers$: BehaviorSubject<any[]> = new BehaviorSubject<any[]>([]);
   heartbeats: Map<string, Subscription> = new Map<string, Subscription>();
   serverDataMap: Map<string, any> = new Map<string, any>();
@@ -42,7 +41,7 @@ export class ActiveServerListComponent implements OnDestroy {
       server_version: data.payload.ping.server_version,
       port: '',
       status: data.payload.up,
-      memory: data.payload.memory,
+      memory: data.payload.memory
     });
     let list: any[] = [];
     this.serverDataMap.forEach((mapValue) => {
