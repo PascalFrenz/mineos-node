@@ -13,7 +13,7 @@ import { IconProp } from "@fortawesome/fontawesome-svg-core";
               <div class="flex justify-end items-center">
                   <fa-icon [icon]="icon"
                            size="4x"
-                           [ngClass]="{'text-green-700': color === 'green', 'text-white': color === 'white', 'text-black': color === 'black' || color === undefined}"></fa-icon>
+                           [ngClass]="{'text-emerald-600': color === 'green', 'text-white': color === 'white', 'text-black': color === 'black' || color === undefined}"></fa-icon>
               </div>
           </div>
       </app-card>
