@@ -1,28 +1,11 @@
-import { Component, OnDestroy, OnInit } from '@angular/core';
-import { Observable } from 'rxjs';
-import { AuthenticationService } from '../../services/authentication.service';
+import { Component, EventEmitter, Output } from '@angular/core';
 
 @Component({
   selector: 'app-header',
   templateUrl: './header.component.html',
   styleUrls: []
 })
-export class HeaderComponent implements OnInit, OnDestroy {
-  userLoggedIn: Observable<boolean>;
+export class HeaderComponent {
 
-  constructor(private authService: AuthenticationService) {
-    this.userLoggedIn = this.authService.isAuthenticated();
-  }
-
-  ngOnInit(): void {
-
-  }
-
-  ngOnDestroy(): void {
-
-  }
-
-  logout() {
-    this.authService.logoutUser().subscribe();
-  }
+  @Output() logout = new EventEmitter<void>();
 }

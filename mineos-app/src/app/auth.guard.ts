@@ -5,7 +5,7 @@ import {
   CanActivateChild,
   Router,
   RouterStateSnapshot,
-  UrlTree,
+  UrlTree
 } from '@angular/router';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -40,7 +40,7 @@ export class AuthGuard implements CanActivate, CanActivateChild {
     | boolean
     | UrlTree {
     return this.authService.isAuthenticated().pipe(map((loggedIn) => {
-      if(loggedIn === true) {
+      if(loggedIn) {
         return true;
       } else {
         this.router.navigate(['login']);
