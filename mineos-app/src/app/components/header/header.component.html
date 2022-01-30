@@ -1,87 +1,65 @@
 <ng-container *ngIf="userLoggedIn | async">
-  <mat-toolbar color="primary"
-               class="app-header"
-               role="heading">
+  <div role="heading">
     <span>MineOS</span>
-    <div class="button-row">
-      <a mat-raised-button
-         [routerLink]="['dashboard']"
-         routerLinkActive
-         #rla1="routerLinkActive"
-         [color]="rla1.isActive ? 'accent' : 'primary'">Dashboard
+    <div>
+      <a [routerLink]="['dashboard']">
+        Dashboard
       </a>
-      <a mat-raised-button
-         [routerLink]="['profiles']"
-         routerLinkActive
-         #rla2="routerLinkActive"
-         [color]="rla2.isActive ? 'accent' : 'primary'">Profiles
+      <a [routerLink]="['profiles']">
+        Profiles
       </a>
-      <a mat-raised-button
-         [routerLink]="['server-details']"
-         routerLinkActive
-         #rla3="routerLinkActive"
-         [color]="rla3.isActive ? 'accent' : 'primary'">Servers
+      <a [routerLink]="['server-details']">
+        Servers
       </a>
-      <a mat-raised-button
-         [routerLink]="['calendar']"
-         routerLinkActive
-         #rla4="routerLinkActive"
-         [color]="rla4.isActive ? 'accent' : 'primary'">Calendar
+      <a [routerLink]="['calendar']">
+        Calendar
       </a>
-      <a mat-raised-button
-         href="https://minecraft.codeemo.com/mineoswiki/index.php"
-         target="_blank"
-         [color]="'primary'">Documentation
+      <a href="https://minecraft.codeemo.com/mineoswiki/index.php"
+         target="_blank">Documentation
       </a>
     </div>
-    <span class="spacer"></span>
-    <button mat-icon-button
-            [matMenuTriggerFor]="menu"
-            aria-label="MineOS menu">
-      <mat-icon>more_vert</mat-icon>
+    <button aria-label="MineOS menu">
+      <div>more_vert</div>
     </button>
-    <mat-menu #menu="matMenu">
-      <button mat-menu-item>
-        <mat-icon>source</mat-icon>
+    <div>
+      <button>
+        <div>source</div>
         <span>git commit (commitHash)</span>
       </button>
       <ng-container *ngIf="darkMode | async; then light; else dark"></ng-container>
-      <button mat-menu-item>
-        <mat-icon>dns</mat-icon>
+      <button >
+        <div>dns</div>
         <span>Refresh Server List</span>
       </button>
-      <button mat-menu-item>
-        <mat-icon>sync</mat-icon>
+      <button >
+        <div>sync</div>
         <span>Refresh Profile List</span>
       </button>
-      <a mat-menu-item
-         href="/admin/index.html">
-        <mat-icon>exit_to_app</mat-icon>
+      <a href="/admin/index.html">
+        <div>exit_to_app</div>
         <span>Legacy interface</span>
       </a>
-      <button mat-menu-item>
-        <mat-icon>translate</mat-icon>
+      <button >
+        <div>translate</div>
         <span>Change Localization</span>
       </button>
-      <button mat-menu-item
+      <button
               (click)="logout()">
-        <mat-icon>logout</mat-icon>
+        <div>logout</div>
         <span>LOGOFF</span>
       </button>
-    </mat-menu>
-  </mat-toolbar>
+    </div>
+  </div>
 </ng-container>
 <ng-template #dark>
-  <button mat-menu-item
-          (click)="changeMode(true)">
-    <mat-icon>dark_mode</mat-icon>
+  <button (click)="changeMode(true)">
+    <div>dark_mode</div>
     <span>Dark Mode</span>
   </button>
 </ng-template>
 <ng-template #light>
-  <button mat-menu-item
-          (click)="changeMode(false)">
-    <mat-icon>light_mode</mat-icon>
+  <button (click)="changeMode(false)">
+    <div>light_mode</div>
     <span>Light Mode</span>
   </button>
 </ng-template>

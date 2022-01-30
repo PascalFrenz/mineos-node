@@ -10,7 +10,6 @@ import { MineosSocketService } from 'src/app/services/mineos-socket.service';
 })
 export class UptimeCardComponent implements OnDestroy {
   sub$:Subscription;
-  iconColor:string = '';
   serverUptime$:BehaviorSubject<number> = new BehaviorSubject<number>(0);
   constructor(private mineosSocket: MineosSocketService) {
     this.sub$ = this.mineosSocket.hostHeartbeat().subscribe((data:HostHeartbeat) => {

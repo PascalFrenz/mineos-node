@@ -1,8 +1,8 @@
-<mat-card class="dashboard-card">
-  <mat-card-header>
-    <mat-card-title>Load Averages</mat-card-title>
-  </mat-card-header>
-  <mat-card-content class="dashboard-card-content">
+<div>
+  <div>
+    <div>Load Averages</div>
+  </div>
+  <div>
     <canvas baseChart
     [datasets]="lineChartData"
     [labels]="lineChartLabels"
@@ -14,5 +14,5 @@
     <ng-component *ngIf="lineChartData.length > 0; else loading">
     </ng-component>
     <ng-template #loading>Loading...</ng-template>
-  </mat-card-content>
-</mat-card>
+  </div>
+</div>

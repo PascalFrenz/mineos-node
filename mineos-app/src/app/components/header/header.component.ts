@@ -1,8 +1,7 @@
-import { Component, EventEmitter, OnInit, Output } from '@angular/core';
-import { Observable } from 'rxjs';
-import { ThemeSwitcherService } from '../../services/theme-switcher.service';
-import { AuthenticationService } from '../../services/authentication.service';
-import { ThemePalette } from '@angular/material/core';
+import {Component} from '@angular/core';
+import {Observable} from 'rxjs';
+import {ThemeSwitcherService} from '../../services/theme-switcher.service';
+import {AuthenticationService} from '../../services/authentication.service';
 
 @Component({
   selector: 'app-header',
@@ -10,7 +9,6 @@ import { ThemePalette } from '@angular/material/core';
   styleUrls: ['./header.component.scss'],
 })
 export class HeaderComponent {
-  background: ThemePalette = undefined;
   darkMode:Observable<boolean>;
   userLoggedIn:Observable<boolean>;
   constructor(private authService: AuthenticationService, private themeSwitcher:ThemeSwitcherService) {
