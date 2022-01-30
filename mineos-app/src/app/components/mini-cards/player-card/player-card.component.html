@@ -1,11 +1,1 @@
-<div>
-  <div>
-    <div>
-      <h1>{{activePlayers$ | async}}</h1>
-    </div>
-    <div>
-      <p>icon</p>
-    </div>
-  </div>
-  <h3>Players Online</h3>
-</div>
+<app-mini-card [icon]="faUsers" [value]="(activePlayers$ | async) ?? 'n/a'" text="Players Online"></app-mini-card>
