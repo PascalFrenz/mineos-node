@@ -1,5 +1,5 @@
 import { Component, OnDestroy } from '@angular/core';
-import { ChartDataSets, ChartOptions, ChartPoint, ChartType } from 'chart.js';
+import { ChartDataSets, ChartOptions, ChartType } from 'chart.js';
 import { Color, Label } from 'ng2-charts';
 import { Subscription } from 'rxjs';
 import { HostHeartbeat } from 'src/app/models/host-heartbeat';
@@ -7,17 +7,32 @@ import { MineosSocketService } from '../../services/mineos-socket.service';
 
 @Component({
   selector: 'app-load-averages',
-  templateUrl: './load-averages.component.html',
-  styleUrls: ['./load-averages.component.scss'],
+  template: `
+      <app-card>
+          <h1 class="text-md">Load Averages</h1>
+          <ng-container *ngIf="lineChartData.length > 0; else loading">
+              <canvas baseChart
+                      [datasets]="lineChartData"
+                      [labels]="lineChartLabels"
+                      [options]="lineChartOptions"
+                      [legend]="lineChartLegend"
+                      [colors]="lineChartColors"
+                      [chartType]="lineChartType"
+                      [plugins]="lineChartPlugins">
+              </canvas>
+          </ng-container>
+          <ng-template #loading>Loading...</ng-template>
+      </app-card>
+  `,
+  styleUrls: []
 })
 export class LoadAveragesComponent implements OnDestroy {
   private numberOfSamples: number = 25;
   sub$: Subscription;
-  iconColor: string = '';
   lineChartData: ChartDataSets[] = [
     { data: Array(this.numberOfSamples).fill(0), label: 'one' },
     { data: Array(this.numberOfSamples).fill(0), label: 'five' },
-    { data: Array(this.numberOfSamples).fill(0), label: 'fifteen' },
+    { data: Array(this.numberOfSamples).fill(0), label: 'fifteen' }
   ];
   // now contains 25 empty strings
   lineChartLabels: Label[] = Array(this.numberOfSamples).fill('');
@@ -40,6 +55,7 @@ export class LoadAveragesComponent implements OnDestroy {
         );
       });
   }
+
   ngOnDestroy(): void {
     this.sub$.unsubscribe();
   }
@@ -55,7 +71,7 @@ export class LoadAveragesComponent implements OnDestroy {
     responsive: true,
     maintainAspectRatio: false,
     animation: {
-      duration: 0,
+      duration: 0
     },
     scales: {
       yAxes: [
@@ -63,11 +79,11 @@ export class LoadAveragesComponent implements OnDestroy {
           ticks: {
             suggestedMin: 0,
             suggestedMax: 1,
-            stepSize: 0.25,
-          },
-        },
-      ],
-    },
+            stepSize: 0.25
+          }
+        }
+      ]
+    }
   };
 
   // Define colors of chart segments
@@ -75,13 +91,13 @@ export class LoadAveragesComponent implements OnDestroy {
     {
       // dark grey
       backgroundColor: 'rgba(77,83,96,0.2)',
-      borderColor: 'rgba(77,83,96,1)',
+      borderColor: 'rgba(77,83,96,1)'
     },
     {
       // red
       backgroundColor: 'rgba(255,0,0,0.3)',
-      borderColor: 'red',
-    },
+      borderColor: 'red'
+    }
   ];
 
   // Set true to show legends
