@@ -40,14 +40,7 @@ export class AuthGuard implements CanActivate, CanActivateChild {
     | boolean
     | UrlTree {
     return this.authService.isAuthenticated().pipe(
-      map((loggedIn) => {
-        console.log("isAuth", "guard", loggedIn);
-        if (loggedIn) {
-          return loggedIn;
-        } else {
-          return this.router.parseUrl("/login")
-        }
-      }),
+      map((loggedIn) => loggedIn ? loggedIn : this.router.parseUrl("/login")),
     );
   }
 }
