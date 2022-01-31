@@ -2,6 +2,7 @@ import { NgModule } from '@angular/core';
 import { RouterModule, Routes } from '@angular/router';
 import { AuthGuard } from './auth.guard';
 import { ArchiveComponent } from './components/archive/archive.component';
+import { AuthenticatedPageComponent } from "./components/authenticated-page/authenticated-page.component";
 import { CalendarComponent } from './components/calendar/calendar.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { EnvironmentComponent } from './components/environment/environment.component';
@@ -15,36 +16,41 @@ import { StatusComponent } from './components/status/status.component';
 
 const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
-  { path: 'login', component: LoginComponent },
   {
-    path: 'dashboard',
-    component: DashboardComponent,
-    canActivate: [AuthGuard],
-  },
-  {
-    path: 'profiles',
-    component: ProfilesComponent,
-    canActivate: [AuthGuard],
-  },
-  {
-    path: 'server-details',
-    component: ServerDetailsComponent,
+    path: '',
+    component: AuthenticatedPageComponent,
     canActivate: [AuthGuard],
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'status' },
-      { path: 'status', component: StatusComponent },
-      { path: 'environment', component: EnvironmentComponent },
-      { path: 'restore-point', component: RestorePointComponent },
-      { path: 'archive', component: ArchiveComponent },
-      { path: 'schedule', component: SchedulingComponent },
-      { path: 'logging', component: LoggingComponent },
-    ],
+      {
+        path: 'dashboard',
+        component: DashboardComponent,
+      },
+      {
+        path: 'profiles',
+        component: ProfilesComponent,
+      },
+      {
+        path: 'server-details',
+        component: ServerDetailsComponent,
+        children: [
+          { path: '', pathMatch: 'full', redirectTo: 'status' },
+          { path: 'status', component: StatusComponent },
+          { path: 'environment', component: EnvironmentComponent },
+          { path: 'restore-point', component: RestorePointComponent },
+          { path: 'archive', component: ArchiveComponent },
+          { path: 'schedule', component: SchedulingComponent },
+          { path: 'logging', component: LoggingComponent },
+        ],
+      },
+      {
+        path: 'calendar',
+        component: CalendarComponent,
+        canActivate: [AuthGuard],
+      }
+    ]
   },
-  {
-    path: 'calendar',
-    component: CalendarComponent,
-    canActivate: [AuthGuard],
-  },
+  { path: 'login', component: LoginComponent },
+  { path: '**', redirectTo: 'dashboard' },
 ];
 
 @NgModule({

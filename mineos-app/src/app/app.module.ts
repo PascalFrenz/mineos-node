@@ -31,6 +31,7 @@ import { ServerDetailsComponent } from './components/server-details/server-detai
 import { StatusComponent } from './components/status/status.component';
 import { BytesToMegabytesPipe } from './pipes/bytes-to-megabytes.pipe';
 import { CardComponent } from './components/card/card.component';
+import { AuthenticatedPageComponent } from './components/authenticated-page/authenticated-page.component';
 
 @NgModule({
   declarations: [
@@ -55,7 +56,8 @@ import { CardComponent } from './components/card/card.component';
     BytesToMegabytesPipe,
     LoadAveragesComponent,
     MiniCardComponent,
-    CardComponent
+    CardComponent,
+    AuthenticatedPageComponent
   ],
   imports: [
     AppRoutingModule,

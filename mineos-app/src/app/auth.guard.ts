@@ -39,13 +39,15 @@ export class AuthGuard implements CanActivate, CanActivateChild {
     | Promise<boolean | UrlTree>
     | boolean
     | UrlTree {
-    return this.authService.isAuthenticated().pipe(map((loggedIn) => {
-      if(loggedIn) {
-        return true;
-      } else {
-        this.router.navigate(['login']);
-        return false;
-      }
-    }));
+    return this.authService.isAuthenticated().pipe(
+      map((loggedIn) => {
+        console.log("isAuth", "guard", loggedIn);
+        if (loggedIn) {
+          return loggedIn;
+        } else {
+          return this.router.parseUrl("/login")
+        }
+      }),
+    );
   }
 }
