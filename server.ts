@@ -1,11 +1,11 @@
-var mineos = require('./mineos');
-var async = require('async');
-var path = require('path');
-var events = require('events');
-var os = require('os');
-var logging = require('winston');
-var fs = require('fs-extra');
-var server = exports;
+import mineos from "./mineos";
+import async from "async";
+import path from "path";
+import os from "os";
+import logging from "winston";
+import fs from "fs-extra";
+
+let server: any = {};
 
 logging.add(logging.transports.File, {
   filename: '/var/log/mineos.log',
@@ -13,14 +13,14 @@ logging.add(logging.transports.File, {
 });
 
 server.backend = function(base_dir, socket_emitter, user_config) {
-  var self = this;
+  const self = this;
 
   self.servers = {};
   self.profiles = [];
   self.front_end = socket_emitter;
   self.commit_msg = '';
 
-  process.umask(0002);
+  process.umask(0o002);
 
   fs.ensureDirSync(base_dir);
   fs.ensureDirSync(path.join(base_dir, mineos.DIRS['servers']));
@@ -29,16 +29,16 @@ server.backend = function(base_dir, socket_emitter, user_config) {
   fs.ensureDirSync(path.join(base_dir, mineos.DIRS['import']));
   fs.ensureDirSync(path.join(base_dir, mineos.DIRS['profiles']));
 
-  fs.chmod(path.join(base_dir, mineos.DIRS['import']), 0777);
+  fs.chmod(path.join(base_dir, mineos.DIRS['import']), 0o777);
 
   (function() {
-    var which = require('which');
+    const which = require('which');
 
     async.waterfall([
       async.apply(which, 'git'),
       function(path, cb) {
-        var child = require('child_process');
-        var opts = {cwd: __dirname};
+        const child = require('child_process');
+        const opts = {cwd: __dirname};
         child.execFile(path, [ 'show', '--oneline', '-s' ], opts, cb);
       },
       function(stdout, stderr, cb) {
@@ -51,15 +51,15 @@ server.backend = function(base_dir, socket_emitter, user_config) {
 
   (function() {
     //thanks to https://github.com/flareofghast/node-advertiser/blob/master/advert.js
-    var dgram = require('dgram');
-    var udp_broadcaster = {};
-    var UDP_DEST = '255.255.255.255';
-    var UDP_PORT = 4445;
-    var BROADCAST_DELAY_MS = 4000;
+    const dgram = require('dgram');
+    const udp_broadcaster = {};
+    const UDP_DEST = '255.255.255.255';
+    const UDP_PORT = 4445;
+    const BROADCAST_DELAY_MS = 4000;
 
     async.forever(
       function(next) {
-        for (var s in self.servers) {
+        for (let s in self.servers) {
           self.servers[s].broadcast_to_lan(function(msg, server_ip) {
             if (msg) {
               if (udp_broadcaster[server_ip]) {
@@ -84,8 +84,8 @@ server.backend = function(base_dir, socket_emitter, user_config) {
   })();
 
   (function() {
-    var procfs = require('procfs-stats');
-    var HOST_HEARTBEAT_DELAY_MS = 1000;
+    const procfs = require('procfs-stats');
+    const HOST_HEARTBEAT_DELAY_MS = 1000;
 
     function host_heartbeat() {
       async.waterfall([
@@ -103,7 +103,7 @@ server.backend = function(base_dir, socket_emitter, user_config) {
   })();
 
   (function() {
-    var server_path = path.join(base_dir, mineos.DIRS['servers']);
+    const server_path = path.join(base_dir, mineos.DIRS['servers']);
 
     function discover() {
       //http://stackoverflow.com/a/24594123/1191579
@@ -111,7 +111,7 @@ server.backend = function(base_dir, socket_emitter, user_config) {
         try {
           return fs.statSync(path.join(server_path, p)).isDirectory();
         } catch (e) {
-          logging.warn("Filepath {0} does not point to an existing directory".format(path.join(server_path,p)));
+          logging.warn(`Filepath ${path.join(server_path,p)} does not point to an existing directory`);
         }
       });
     }
@@ -135,18 +135,18 @@ server.backend = function(base_dir, socket_emitter, user_config) {
       }
     }
 
-    var discovered_servers = discover();
+    const discovered_servers = discover();
     for (var i in discovered_servers)
       track(discovered_servers[i]);
 
     fs.watch(server_path, function() {
-      var current_servers = discover();
+      const current_servers = discover();
 
-      for (var i in current_servers)
+      for (let i in current_servers)
         if (!(current_servers[i] in self.servers)) //if detected directory not a discovered server, track
           track(current_servers[i]);
 
-      for (var s in self.servers)
+      for (let s in self.servers)
         if (current_servers.indexOf(s) < 0)
           untrack(s);
 
@@ -154,10 +154,10 @@ server.backend = function(base_dir, socket_emitter, user_config) {
   })();
 
   (function() {
-    var fireworm = require('fireworm');
-    var importable_archives = path.join(base_dir, mineos.DIRS['import']);
+    const fireworm = require('fireworm');
+    const importable_archives = path.join(base_dir, mineos.DIRS['import']);
 
-    var fw = fireworm(importable_archives);
+    const fw = fireworm(importable_archives);
     fw.add('**/*.zip');
     fw.add('**/*.tar');
     fw.add('**/*.tgz');
@@ -175,7 +175,7 @@ server.backend = function(base_dir, socket_emitter, user_config) {
   })();
 
   self.start_servers = function() {
-    var MS_TO_PAUSE = 10000;
+    const MS_TO_PAUSE = 10000;
 
     async.eachLimit(
       Object.keys(self.servers),
@@ -183,9 +183,9 @@ server.backend = function(base_dir, socket_emitter, user_config) {
       function(server_name, callback) {
         self.servers[server_name].onreboot_start(function(err) {
           if (err)
-            logging.error('[{0}] Aborted server startup; condition not met:'.format(server_name), err);
+            logging.error(`[${server_name}] Aborted server startup; condition not met: `, err);
           else
-            logging.info('[{0}] Server started. Waiting {1} ms...'.format(server_name, MS_TO_PAUSE));
+            logging.info(`[${server_name}] Server started. Waiting ${MS_TO_PAUSE} ms...`);
 
           setTimeout(callback, (err ? 1 : MS_TO_PAUSE));
         });
@@ -197,7 +197,7 @@ server.backend = function(base_dir, socket_emitter, user_config) {
   setTimeout(self.start_servers, 5000);
 
   self.shutdown = function() {
-    for (var server_name in self.servers)
+    for (let server_name in self.servers)
       self.servers[server_name].cleanup();
   }
 
@@ -205,18 +205,18 @@ server.backend = function(base_dir, socket_emitter, user_config) {
     if (send_existing && self.profiles.length) //if requesting to just send what you already have AND they are already present
       self.front_end.emit('profile_list', self.profiles);
     else {
-      var request = require('request');
-      var profile_dir = path.join(base_dir, mineos.DIRS['profiles']);
-      var SIMULTANEOUS_DOWNLOADS = 3;
-      var SOURCES = [];
-      var profiles = [];
+      const request = require('request');
+      const profile_dir = path.join(base_dir, mineos.DIRS['profiles']);
+      const SIMULTANEOUS_DOWNLOADS = 3;
+      let SOURCES = [];
+      let profiles = [];
 
       try {
-        SOURCES = require('./profiles.js')['profile_manifests'];
+        SOURCES = require('./profiles.ts')['profile_manifests'];
       } catch (e) {
-        logging.error('Unable to parse profiles.js--no profiles loaded!');
+        logging.error('Unable to parse profiles.ts--no profiles loaded!');
         logging.error(e);
-        return; // just bail out if profiles.js cannot be required for syntax issues
+        return; // just bail out if profiles.ts cannot be required for syntax issues
       }
 
       async.forEachOfLimit(
@@ -234,9 +234,9 @@ server.backend = function(base_dir, socket_emitter, user_config) {
               }
             ], function(err, output) {
               if (err || typeof output == 'undefined')
-                logging.error("Unable to retrieve profile: {0}. The definition for this profile may be improperly formed or is pointing to an invalid URI.".format(key));
+                logging.error(`Unable to retrieve profile: ${key}. The definition for this profile may be improperly formed or is pointing to an invalid URI.`);
               else {
-                logging.info("Downloaded information for collection: {0} ({1} entries)".format(collection.name, output.length));
+                logging.info(`Downloaded information for collection: ${collection.name} (${output.length} entries)`);
                 profiles = profiles.concat(output);
               }
               outer_cb();
@@ -248,9 +248,9 @@ server.backend = function(base_dir, socket_emitter, user_config) {
               }
             ], function(err, output) {
               if (err || typeof output == 'undefined')
-                logging.error("Unable to retrieve profile: {0}. The definition for this profile may be improperly formed or is pointing to an invalid URI.".format(key));
+                logging.error(`Unable to retrieve profile: ${key}. The definition for this profile may be improperly formed or is pointing to an invalid URI.`);
               else {
-                logging.info("Downloaded information for collection: {0} ({1} entries)".format(collection.name, output.length));
+                logging.info(`Downloaded information for collection: ${collection.name} (${output.length} entries)`);
                 profiles = profiles.concat(output);
               }
               outer_cb();
@@ -266,14 +266,14 @@ server.backend = function(base_dir, socket_emitter, user_config) {
   }
 
   self.send_spigot_list = function() {
-    var profiles_dir = path.join(base_dir, mineos.DIRS['profiles']);
-    var spigot_profiles = {};
+    const profiles_dir = path.join(base_dir, mineos.DIRS['profiles']);
+    const spigot_profiles = {};
 
     async.waterfall([
       async.apply(fs.readdir, profiles_dir),
       function(listing, cb) {
-        for (var i in listing) {
-          var match = listing[i].match(/(paper)?spigot_([\d\.]+)/);
+        for (let i in listing) {
+          const match = listing[i].match(/(paper)?spigot_([\d\.]+)/);
           if (match)
             spigot_profiles[match[0]] = {
               'directory': match[0],
@@ -291,9 +291,9 @@ server.backend = function(base_dir, socket_emitter, user_config) {
     async.waterfall([
       async.apply(fs.readdir, path.join(__dirname, 'html', 'locales')),
       function (locale_paths, cb) {
-        var locales = locale_paths.map(function(r) {
-          return r.match(/^locale-([a-z]{2}_[A-Z]{2}).json$/)[1];
-        })
+        const locales = locale_paths.map(function (r) {
+          return r.match(/^locale-([a-z]${}_[A-Z]${}).json$/)[1];
+        });
         cb(null, locales);
       }
     ], function(err, output) {
@@ -306,27 +306,30 @@ server.backend = function(base_dir, socket_emitter, user_config) {
   }
 
   self.front_end.on('connection', function(socket) {
-    var userid = require('userid');
-    var fs = require('fs-extra');
+    const userid = require('userid');
+    const fs = require('fs-extra');
 
-    var ip_address = socket.request.connection.remoteAddress;
-    var username = socket.request.user.username;
+    const ip_address = socket.request.connection.remoteAddress;
+    const username = socket.request.user.username;
 
-    var OWNER_CREDS = {
+    const OWNER_CREDS = {
       uid: userid.uid(username),
       gid: userid.gids(username)[0]
-    }
+    };
 
     function webui_dispatcher (args) {
-      logging.info('[WEBUI] Received emit command from {0}:{1}'.format(ip_address, username), args);
+      logging.info(`[WEBUI] Received emit command from ${ip_address}:${username}`, args);
+      let instance;
+      let spigot_path;
+      let dest_path;
       switch (args.command) {
         case 'create':
-          var instance = new mineos.mc(args.server_name, base_dir);
+          instance = new mineos.mc(args.server_name, base_dir);
 
           async.series([
             async.apply(instance.verify, '!exists'),
             function(cb) {
-              var whitelisted_creators = [username]; //by default, accept create attempt by current user
+              let whitelisted_creators = [username]; //by default, accept create attempt by current user
               if ( (user_config || {}).creators ) {  //if creators key:value pair exists, use it
                 whitelisted_creators = user_config['creators'].split(',');
                 whitelisted_creators = whitelisted_creators.filter(function(e){return e}); //remove non-truthy entries like ''
@@ -340,38 +343,38 @@ server.backend = function(base_dir, socket_emitter, user_config) {
             async.apply(instance.overlay_sp, args.properties),
           ], function(err, results) {
             if (!err)
-              logging.info('[{0}] Server created in filesystem.'.format(args.server_name));
+              logging.info(`[${args.server_name}] Server created in filesystem.`);
             else {
-              logging.info('[{0}] Failed to create server in filesystem as user {1}.'.format(args.server_name, username));
+              logging.info(`[${args.server_name}] Failed to create server in filesystem as user ${username}.`);
               logging.error(err);
             }
           })
           break;
         case 'create_unconventional_server':
-          var instance = new mineos.mc(args.server_name, base_dir);
+          instance = new mineos.mc(args.server_name, base_dir);
 
           async.series([
             async.apply(instance.verify, '!exists'),
             async.apply(instance.create_unconventional_server, OWNER_CREDS),
           ], function(err, results) {
             if (!err)
-              logging.info('[{0}] Server (unconventional) created in filesystem.'.format(args.server_name));
+              logging.info(`[${args.server_name}] Server (unconventional) created in filesystem.`);
             else
               logging.error(err);
           })
           break;
         case 'download':
-          for (var idx in self.profiles) {
+          for (let idx in self.profiles) {
             if (self.profiles[idx].id == args.profile.id) {
-              var SOURCES = require('./profiles.js')['profile_manifests'];
-              var profile_dir = path.join(base_dir, 'profiles', args.profile.id);
-              var dest_filepath = path.join(profile_dir, args.profile.filename);
+              const SOURCES = require('./profiles.ts')['profile_manifests'];
+              const profile_dir = path.join(base_dir, 'profiles', args.profile.id);
+              const dest_filepath = path.join(profile_dir, args.profile.filename);
 
               async.series([
                 async.apply(fs.ensureDir, profile_dir),
                 function(cb) {
-                  var progress = require('request-progress');
-                  var request = require('request');
+                  const progress = require('request-progress');
+                  const request = require('request');
                   progress(request({url: args.profile.url, headers: {'User-Agent': 'MineOS-node'}}), { throttle: 250, delay: 100 })
                     .on('error', function(err) {
                       logging.error(err);
@@ -382,10 +385,10 @@ server.backend = function(base_dir, socket_emitter, user_config) {
                     })
                     .on('complete', function(response) {
                       if (response.statusCode == 200) {
-                        logging.info('[WEBUI] Successfully downloaded {0} to {1}'.format(args.profile.url, dest_filepath));
+                        logging.info(`[WEBUI] Successfully downloaded ${args.profile.url} to ${dest_filepath}`);
                       } else {
                         logging.error('[WEBUI] Server was unable to download file:', args.profile.url);
-                        logging.error('[WEBUI] Remote server returned status {0} with headers:'.format(response.statusCode), response.headers);
+                        logging.error(`[WEBUI] Remote server returned status ${response.statusCode} with headers:`, response.headers);
                       }
                       cb(response.statusCode != 200);
                     })
@@ -397,14 +400,14 @@ server.backend = function(base_dir, socket_emitter, user_config) {
                       cb();
                       break;
                     case '.zip':
-                      var unzip = require('unzip');
+                      const unzip = require('unzip');
                       fs.createReadStream(dest_filepath)
                         .pipe(unzip.Extract({ path: profile_dir })
                                 .on('close', function() { cb() })
                                 .on('error', function() {
                                   //Unzip error occurred, falling back to adm-zip
-                                  var admzip = require('adm-zip');
-                                  var zip = new admzip(dest_filepath);
+                                  const admzip = require('adm-zip');
+                                  const zip = new admzip(dest_filepath);
                                   zip.extractAllTo(profile_dir, true); //true => overwrite
                                   cb();
                                 })
@@ -438,15 +441,16 @@ server.backend = function(base_dir, socket_emitter, user_config) {
           }
           break;
         case 'build_jar':
-          var which = require('which');
-          var child_process = require('child_process');
+          const which = require('which');
+          const child_process = require('child_process');
 
+          let working_dir, bt_path, params;
           try {
-            var profile_path = path.join(base_dir, mineos.DIRS['profiles']);
-            var working_dir = path.join(profile_path, '{0}_{1}'.format(args.builder.group, args.version));
-            var bt_path = path.join(profile_path, args.builder.id, args.builder.filename);
-            var dest_path = path.join(working_dir, args.builder.filename);
-            var params = { cwd: working_dir };
+            const profile_path = path.join(base_dir, mineos.DIRS['profiles']);
+            working_dir = path.join(profile_path, `${args.builder.group}_${args.version}`);
+            bt_path = path.join(profile_path, args.builder.id, args.builder.filename);
+            dest_path = path.join(working_dir, args.builder.filename);
+            params = {cwd: working_dir};
           } catch (e) {
             logging.error('[WEBUI] Could not build jar; insufficient/incorrect arguments provided:', args);
             logging.error(e);
@@ -457,8 +461,8 @@ server.backend = function(base_dir, socket_emitter, user_config) {
             async.apply(fs.mkdir, working_dir),
             async.apply(fs.copy, bt_path, dest_path),
             function(cb) {
-              var binary = which.sync('java');
-              var proc = child_process.spawn(binary, ['-Xms512M', '-jar', dest_path, '--rev', args.version], params);
+              const binary = which.sync('java');
+              const proc = child_process.spawn(binary, ['-Xms512M', '-jar', dest_path, '--rev', args.version], params);
 
               proc.stdout.on('data', function (data) {
                 self.front_end.emit('build_jar_output', data.toString());
@@ -477,18 +481,18 @@ server.backend = function(base_dir, socket_emitter, user_config) {
               });
             }
           ], function(err, results) {
-            logging.info('[WEBUI] BuildTools jar compilation finished {0} in {1}'.format( (err ? 'unsuccessfully' : 'successfully'), working_dir));
-            logging.info('[WEBUI] Buildtools used: {0}'.format(dest_path));
+            logging.info(`[WEBUI] BuildTools jar compilation finished ${err ? 'unsuccessfully' : 'successfully'} in ${working_dir}`);
+            logging.info(`[WEBUI] Buildtools used: ${dest_path}`);
 
-            var retval = {
+            const retval = {
               'command': 'BuildTools jar compilation',
               'success': true,
               'help_text': ''
-            }
+            };
 
             if (err) {
               retval['success'] = false;
-              retval['help_text'] = "Error {0} ({1}): {2}".format(err.errno, err.code, err.path);
+              retval['help_text'] = `Error ${err.errno} (${err.code}): ${err.path}`;
             }
 
             self.front_end.emit('host_notice', retval);
@@ -497,22 +501,22 @@ server.backend = function(base_dir, socket_emitter, user_config) {
           break;
         case 'delete_build':
           if (args.type == 'spigot')
-            var spigot_path = path.join(base_dir, mineos.DIRS['profiles'], 'spigot_' + args.version);
+            spigot_path = path.join(base_dir, mineos.DIRS['profiles'], 'spigot_' + args.version);
           else {
             logging.error('[WEBUI] Unknown type of craftbukkit server -- potential modified webui request?');
             return;
           }
 
           fs.remove(spigot_path, function(err) {
-            var retval = {
+            const retval = {
               'command': 'Delete BuildTools jar',
               'success': true,
               'help_text': ''
-            }
+            };
 
             if (err) {
               retval['success'] = false;
-              retval['help_text'] = "Error {0}".format(err);
+              retval['help_text'] = `Error ${err}`;
             }
 
             self.front_end.emit('host_notice', retval);
@@ -520,42 +524,42 @@ server.backend = function(base_dir, socket_emitter, user_config) {
           })
           break;
         case 'copy_to_server':
-          var rsync = require('rsync');
+          const rsync = require('rsync');
 
           if (args.type == 'spigot')
-            var spigot_path = path.join(base_dir, mineos.DIRS['profiles'], 'spigot_' + args.version) + '/';
+            spigot_path = path.join(base_dir, mineos.DIRS['profiles'], 'spigot_' + args.version) + '/';
           else {
             logging.error('[WEBUI] Unknown type of craftbukkit server -- potential modified webui request?');
             return;
           }
-          var dest_path = path.join(base_dir, mineos.DIRS['servers'], args.server_name) + '/';
+          dest_path = path.join(base_dir, mineos.DIRS['servers'], args.server_name) + '/';
 
-          var obj = rsync.build({
+          const obj = rsync.build({
             source: spigot_path,
             destination: dest_path,
             flags: 'au',
-            shell:'ssh'
+            shell: 'ssh'
           });
 
           obj.set('--include', '*.jar');
           obj.set('--exclude', '*');
           obj.set('--prune-empty-dirs');
-          obj.set('--chown', '{0}:{1}'.format(OWNER_CREDS.uid, OWNER_CREDS.gid));
+          obj.set('--chown', `${OWNER_CREDS.uid}:${OWNER_CREDS.gid}`);
 
           obj.execute(function(error, code, cmd) {
-            var retval = {
+            const retval = {
               'command': 'BuildTools jar copy',
               'success': true,
               'help_text': ''
-            }
+            };
 
             if (error) {
               retval['success'] = false;
-              retval['help_text'] = "Error {0} ({1})".format(error, code);
+              retval['help_text'] = `Error ${error} (${code})`;
             }
 
             self.front_end.emit('host_notice', retval);
-            for (var s in self.servers)
+            for (let s in self.servers)
               self.front_end.emit('track_server', s);
           });
 
@@ -569,72 +573,73 @@ server.backend = function(base_dir, socket_emitter, user_config) {
           self.send_spigot_list();
           break;
         case 'create_from_archive':
-          var instance = new mineos.mc(args.new_server_name, base_dir);
+          instance = new mineos.mc(args.new_server_name, base_dir);
 
+          let filepath;
           if (args.awd_dir)
-            var filepath = path.join(instance.env.base_dir, mineos.DIRS['archive'], args.awd_dir, args.filename);
+            filepath = path.join(instance.env.base_dir, mineos.DIRS['archive'], args.awd_dir, args.filename);
           else
-            var filepath = path.join(instance.env.base_dir, mineos.DIRS['import'], args.filename);
+            filepath = path.join(instance.env.base_dir, mineos.DIRS['import'], args.filename);
 
           async.series([
             async.apply(instance.verify, '!exists'),
             async.apply(instance.create_from_archive, OWNER_CREDS, filepath)
           ], function(err, results) {
             if (!err) {
-              logging.info('[{0}] Server created in filesystem.'.format(args.new_server_name));
+              logging.info(`[${args.new_server_name}] Server created in filesystem.`);
               setTimeout(function(){ self.front_end.emit('track_server', args.new_server_name) }, 1000);
             } else
               logging.error(err);
           })
           break;
         default:
-          logging.warn('Command ignored: no such command {0}'.format(args.command));
+          logging.warn(`Command ignored: no such command ${args.command}`);
           break;
       }
     }
 
     self.send_user_list = function() {
-      var passwd = require('etc-passwd');
-      var users = [];
-      var groups = [];
+      const passwd = require('etc-passwd');
+      const users: any[] = [];
+      const groups: any[] = [];
 
-      var gu = passwd.getUsers()
-        .on('user', function(user_data) {
-          if (user_data.username == username)
-            users.push({
-              username: user_data.username,
-              uid: user_data.uid,
-              gid: user_data.gid,
-              home: user_data.home
-            })
-        })
-        .on('end', function() {
-          socket.emit('user_list', users);
-        })
-
-      var gg = passwd.getGroups()
-        .on('group', function(group_data) {
-          if (group_data.users.indexOf(username) >= 0 || group_data.gid == userid.gids(username)[0]) {
-            if (group_data.gid > 0) {
-              groups.push({
-                groupname: group_data.groupname,
-                gid: group_data.gid
+      const gu = passwd.getUsers()
+          .on('user', function (user_data) {
+            if (user_data.username == username)
+              users.push({
+                username: user_data.username,
+                uid: user_data.uid,
+                gid: user_data.gid,
+                home: user_data.home
               })
+          })
+          .on('end', function () {
+            socket.emit('user_list', users);
+          });
+
+      const gg = passwd.getGroups()
+          .on('group', function (group_data) {
+            if (group_data.users.indexOf(username) >= 0 || group_data.gid == userid.gids(username)[0]) {
+              if (group_data.gid > 0) {
+                groups.push({
+                  groupname: group_data.groupname,
+                  gid: group_data.gid
+                })
+              }
             }
-          }
-        })
-        .on('end', function() {
-          socket.emit('group_list', groups);
-        })
+          })
+          .on('end', function () {
+            socket.emit('group_list', groups);
+          });
     }
 
-    logging.info('[WEBUI] {0} connected from {1}'.format(username, ip_address));
+    logging.info(`[WEBUI] ${username} connected from ${ip_address}`);
     socket.emit('whoami', username);
     socket.emit('commit_msg', self.commit_msg);
     socket.emit('change_locale', (user_config || {})['webui_locale']);
     socket.emit('optional_columns', (user_config || {})['optional_columns']);
 
-    for (var server_name in self.servers)
+    for (let server_name in self.servers)
       socket.emit('track_server', server_name);
 
     socket.on('command', webui_dispatcher);
@@ -647,16 +652,16 @@ server.backend = function(base_dir, socket_emitter, user_config) {
   })
 
   self.send_importable_list = function() {
-    var importable_archives = path.join(base_dir, mineos.DIRS['import']);
-    var all_info = [];
+    const importable_archives = path.join(base_dir, mineos.DIRS['import']);
+    const all_info: any[] = [];
 
     fs.readdir(importable_archives, function(err, files) {
       if (!err) {
-        var fullpath = files.map(function(value, index) {
+        const fullpath = files.map(function (value, index) {
           return path.join(importable_archives, value);
         });
 
-        var stat = fs.stat;
+        const stat = fs.stat;
         async.map(fullpath, stat, function(inner_err, results){
           results.forEach(function(value, index) {
             all_info.push({
@@ -679,22 +684,22 @@ server.backend = function(base_dir, socket_emitter, user_config) {
   return self;
 }
 
-function server_container(server_name, user_config, socket_io) {
+function server_container(this: any, server_name, user_config, socket_io) {
   // when evoked, creates a permanent 'mc' instance, namespace, and place for file tails.
-  var self = this;
-  var instance = new mineos.mc(server_name, user_config.base_directory),
-      nsp = socket_io.of('/{0}'.format(server_name)),
+  const self: any = this;
+  const instance = new mineos.mc(server_name, user_config.base_directory),
+      nsp = socket_io.of(`/${server_name}`),
       tails = {},
-      notices = [],
-      cron = {},
-      intervals = {},
-      HEARTBEAT_INTERVAL_MS = 5000,
-      COMMIT_INTERVAL_MIN = null;
+      notices: any[] = [];
+  let cron = {};
+  const intervals = {},
+      HEARTBEAT_INTERVAL_MS = 5000;
+  let COMMIT_INTERVAL_MIN = null;
 
-  logging.info('[{0}] Discovered server'.format(server_name));
+  logging.info(`[${server_name}] Discovered server`);
 
   // check that awd and bwd also exist alongside cwd or create and chown
-  var missing_dir = false;
+  let missing_dir = false;
   try { fs.accessSync(instance.env.bwd, fs.F_OK) } catch (e) { missing_dir = true }
   try { fs.accessSync(instance.env.awd, fs.F_OK) } catch (e) { missing_dir = true }
 
@@ -710,9 +715,9 @@ function server_container(server_name, user_config, socket_io) {
   //uncomment sync_chown to correct perms on server discovery
   //commenting out for high cpu usage on startup
 
-  var files_to_tail = ['logs/latest.log', 'server.log', 'proxy.log.0', 'logs/fml-server-latest.log'];
+  let files_to_tail = ['logs/latest.log', 'server.log', 'proxy.log.0', 'logs/fml-server-latest.log'];
   if ( (user_config || {}).additional_logfiles ) {  //if additional_logfiles key:value pair exists, use it
-    var additional = user_config['additional_logfiles'].split(',');
+    let additional = user_config['additional_logfiles'].split(',');
     additional = additional.filter(function(e){return e}); //remove non-truthy entries like ''
     additional = additional.map(function(e) {return e.trim()}); //remove trailing and tailing whitespace
     additional = additional.map(function(e) {return path.normalize(e).replace(/^(\.\.[\/\\])+/, '')}); //normalize path, remove traversal
@@ -725,9 +730,9 @@ function server_container(server_name, user_config, socket_io) {
     make_tail(files_to_tail[i]);
 
   (function() {
-    var fireworm = require('fireworm');
+    const fireworm = require('fireworm');
 
-    var skip_dirs = fs.readdirSync(instance.env.cwd).filter(function(p) {
+    let skip_dirs = fs.readdirSync(instance.env.cwd).filter(function (p) {
       try {
         return fs.statSync(path.join(instance.env.cwd, p)).isDirectory();
       } catch (e) {
@@ -736,16 +741,16 @@ function server_container(server_name, user_config, socket_io) {
       }
     });
 
-    var default_skips = ['world', 'world_the_end', 'world_nether', 'dynmap', 'plugins', 'web', 'region', 'playerdata', 'stats', 'data'];
+    const default_skips = ['world', 'world_the_end', 'world_nether', 'dynmap', 'plugins', 'web', 'region', 'playerdata', 'stats', 'data'];
     for (var i in default_skips)
       if (skip_dirs.indexOf(default_skips[i]) == -1)
         skip_dirs.push(default_skips[i]);
 
     skip_dirs = skip_dirs.filter(function(e) { return e !== 'logs' }); // remove 'logs' from blacklist!
 
-    logging.info('[{0}] Using skipDirEntryPatterns: {1}'.format(server_name, skip_dirs));
+    logging.info(`[${server_name}] Using skipDirEntryPatterns: ${skip_dirs}`);
 
-    var fw = fireworm(instance.env.cwd, {skipDirEntryPatterns: skip_dirs});
+    const fw = fireworm(instance.env.cwd, {skipDirEntryPatterns: skip_dirs});
 
     for (var i in skip_dirs) {
 	fw.ignore(skip_dirs[i]);
@@ -757,13 +762,14 @@ function server_container(server_name, user_config, socket_io) {
     fw.add('**/server-icon.png');
     fw.add('**/config.yml');
 
-    var FS_DELAY = 250; 
+    const FS_DELAY = 250;
+
     function handle_event(fp) {
       // because it is unknown when fw triggers on add/change and
       // further because if it catches DURING the write, it will find
       // the file has 0 size, adding arbitrary delay.
       // process.nexttick didnt work.
-      var file_name = path.basename(fp);
+      const file_name = path.basename(fp);
       switch (file_name) {
         case 'server.properties':
           setTimeout(broadcast_sp, FS_DELAY);
@@ -836,10 +842,10 @@ function server_container(server_name, user_config, socket_io) {
         if (minutes != COMMIT_INTERVAL_MIN) { //upon change or init
           COMMIT_INTERVAL_MIN = minutes;
           if (minutes > 0) {
-            logging.info('[{0}] committing world to disk every {1} minutes.'.format(server_name, minutes));
+            logging.info(`[${server_name}] committing world to disk every ${minutes} minutes.`);
             intervals['commit'] = setInterval(instance.saveall, minutes * 60 * 1000);
           } else {
-            logging.info('[{0}] not committing world to disk automatically (interval set to {1})'.format(server_name, minutes));
+            logging.info(`[${server_name}] not committing world to disk automatically (interval set to ${minutes})`);
             clearInterval(intervals['commit']);
           }
         }
@@ -848,25 +854,25 @@ function server_container(server_name, user_config, socket_io) {
   }
 
   (function() {
-    var CronJob = require('cron').CronJob;
+    const CronJob = require('cron').CronJob;
 
     function cron_dispatcher(args) {
-      var introspect = require('introspect');
-      var fn, required_args;
-      var arg_array = [];
+      const introspect = require('introspect');
+      let fn, required_args;
+      const arg_array: any[] = [];
 
       fn = instance[args.command];
       required_args = introspect(fn);
 
-      for (var i in required_args) {
+      for (let i in required_args) {
         // all callbacks expected to follow the pattern (success, payload).
         if (required_args[i] == 'callback')
-          arg_array.push(function(err, payload) {
+          arg_array.push((err, payload) => {
             args.success = !err;
             args.err = err;
             args.time_resolved = Date.now();
             if (err)
-              logging.error('[{0}] command "{1}" errored out:'.format(server_name, args.command), args);
+              logging.error(`[${server_name}] command "${args.command}" errored out:`, args);
           })
         else if (required_args[i] in args) {
           arg_array.push(args[required_args[i]])
@@ -877,7 +883,7 @@ function server_container(server_name, user_config, socket_io) {
     }
 
     instance.crons(function(err, cron_dict) {
-      for (var cronhash in cron_dict) {
+      for (let cronhash in cron_dict) {
         if (cron_dict[cronhash].enabled) {
           try {
             cron[cronhash] = new CronJob({
@@ -890,7 +896,7 @@ function server_container(server_name, user_config, socket_io) {
             });
           } catch (e) {
             // catches invalid cron expressions
-            logging.warn('[{0}] invalid cron expression:'.format(server_name), cronhash, cron_dict[cronhash]);
+            logging.warn(`[${server_name}] invalid cron expression:`, cronhash, cron_dict[cronhash]);
             instance.set_cron(cronhash, false, function(){});
           }
         }
@@ -904,7 +910,7 @@ function server_container(server_name, user_config, socket_io) {
       async.apply(instance.verify, 'up'),
       async.apply(instance.sc),
       function(sc_data, cb) {
-        var broadcast_value = (sc_data.minecraft || {}).broadcast;
+        const broadcast_value = (sc_data.minecraft || {}).broadcast;
         cb(!broadcast_value) //logically notted to make broadcast:true pass err cb
       },
       async.apply(instance.sp)
@@ -912,8 +918,8 @@ function server_container(server_name, user_config, socket_io) {
       if (err)
         callback(null);
       else {
-        var msg = Buffer.from("[MOTD]" + sp_data.motd + "[/MOTD][AD]" + sp_data['server-port'] + "[/AD]");
-        var server_ip = sp_data['server-ip'];
+        const msg = Buffer.from("[MOTD]" + sp_data.motd + "[/MOTD][AD]" + sp_data['server-port'] + "[/AD]");
+        const server_ip = sp_data['server-ip'];
         callback(msg, server_ip);
       }
     })
@@ -923,7 +929,7 @@ function server_container(server_name, user_config, socket_io) {
     async.waterfall([
       async.apply(instance.property, 'onreboot_start'),
       function(autostart, cb) {
-        logging.info('[{0}] autostart = {1}'.format(server_name, autostart));
+        logging.info(`[${server_name}] autostart = ${autostart}`);
         cb(!autostart); //logically NOT'ing so that autostart = true continues to next func
       },
       async.apply(instance.start)
@@ -933,25 +939,23 @@ function server_container(server_name, user_config, socket_io) {
   }
 
   self.cleanup = function () {
-    for (var t in tails)
+    for (let t in tails)
       tails[t].unwatch();
 
-    for (var i in intervals)
+    for (let i in intervals)
       clearInterval(intervals[i]);
 
     nsp.removeAllListeners();
   }
 
   function emit_eula() {
-    var fs = require('fs-extra');
-    var eula_path = path.join(instance.env.cwd, 'eula.txt');
+    const fs = require('fs-extra');
+    const eula_path = path.join(instance.env.cwd, 'eula.txt');
 
     async.waterfall([
       async.apply(instance.property, 'eula'),
       function(accepted, cb) {
-        logging.info('[{0}] eula.txt detected: {1} (eula={2})'.format(server_name,
-                                                                     (accepted ? 'ACCEPTED' : 'NOT YET ACCEPTED'),
-                                                                     accepted));
+        logging.info(`[${server_name}] eula.txt detected: ${accepted ? 'ACCEPTED' : 'NOT YET ACCEPTED'} (eula=${accepted})`);
         nsp.emit('eula', accepted);
         cb();
       },
@@ -961,8 +965,8 @@ function server_container(server_name, user_config, socket_io) {
   function broadcast_icon() {
     // function to encode file data to base64 encoded string
     //http://www.hacksparrow.com/base64-encoding-decoding-in-node-js.html
-    var fs = require('fs');
-    var filepath = path.join(instance.env.cwd, 'server-icon.png');
+    const fs = require('fs');
+    const filepath = path.join(instance.env.cwd, 'server-icon.png');
     fs.readFile(filepath, function(err, data) {
       if (!err && data.toString('hex',0,4) == '89504e47') //magic number for png first 4B
         nsp.emit('server-icon.png', Buffer.from(data).toString('base64'));
@@ -971,8 +975,8 @@ function server_container(server_name, user_config, socket_io) {
 
   function broadcast_cy() {
     // function to broadcast raw config.yml from bungeecord
-    var fs = require('fs');
-    var filepath = path.join(instance.env.cwd, 'config.yml');
+    const fs = require('fs');
+    const filepath = path.join(instance.env.cwd, 'config.yml');
     fs.readFile(filepath, function(err, data) {
       if (!err)
         nsp.emit('config.yml', Buffer.from(data).toString());
@@ -985,14 +989,14 @@ function server_container(server_name, user_config, socket_io) {
 
   function broadcast_sp() {
     instance.sp(function(err, sp_data) {
-      logging.debug('[{0}] broadcasting server.properties'.format(server_name));
+      logging.debug(`[${server_name}] broadcasting server.properties`);
       nsp.emit('server.properties', sp_data);
     })
   }
 
   function broadcast_sc() {
     instance.sc(function(err, sc_data) {
-      logging.debug('[{0}] broadcasting server.config'.format(server_name));
+      logging.debug(`[${server_name}] broadcasting server.config`);
       if (!err)
         nsp.emit('server.config', sc_data);
     })
@@ -1000,7 +1004,7 @@ function server_container(server_name, user_config, socket_io) {
 
   function broadcast_cc() {
     instance.crons(function(err, cc_data) {
-      logging.debug('[{0}] broadcasting cron.config'.format(server_name));
+      logging.debug(`[${server_name}] broadcasting cron.config`);
       if (!err)
         nsp.emit('cron.config', cc_data);
     })
@@ -1013,39 +1017,39 @@ function server_container(server_name, user_config, socket_io) {
        if the server does not exist, a watch is made in the interim, waiting for its creation.
        once the watch is satisfied, the watch is closed and a tail is finally created.
     */
-    var tail = require('tail').Tail;
-    var abs_filepath = path.join(instance.env.cwd, rel_filepath);
+    const tail = require('tail').Tail;
+    const abs_filepath = path.join(instance.env.cwd, rel_filepath);
 
     if (rel_filepath in tails) {
-      logging.warn('[{0}] Tail already exists for {1}'.format(server_name, rel_filepath));
+      logging.warn(`[${server_name}] Tail already exists for ${rel_filepath}`);
       return;
     }
 
     try {
-      var new_tail = new tail(abs_filepath);
-      logging.info('[{0}] Created tail on {1}'.format(server_name, rel_filepath));
+      const new_tail = new tail(abs_filepath);
+      logging.info(`[${server_name}] Created tail on ${rel_filepath}`);
       new_tail.on('line', function(data) {
-        //logging.info('[{0}] {1}: transmitting new tail data'.format(server_name, rel_filepath));
+        //logging.info('[${}] ${}: transmitting new tail data'.format(server_name, rel_filepath));
         nsp.emit('tail_data', {'filepath': rel_filepath, 'payload': data});
       })
       tails[rel_filepath] = new_tail;
-    } catch (e) {
-      logging.error('[{0}] Create tail on {1} failed'.format(server_name, rel_filepath));
+    } catch (e: any) {
+      logging.error(`[${server_name}] Create tail on ${rel_filepath} failed`);
       if (e.errno != -2) {
         logging.error(e);
         return; //exit execution to perhaps curb a runaway process
       }
-      logging.info('[{0}] Watching for file generation: {1}'.format(server_name, rel_filepath));
+      logging.info(`[${server_name}] Watching for file generation: ${rel_filepath}`);
 
-      var fireworm = require('fireworm');
-      var default_skips = ['world', 'world_the_end', 'world_nether', 'dynmap', 'plugins', 'web', 'region', 'playerdata', 'stats', 'data'];
-      var fw = fireworm(instance.env.cwd, {skipDirEntryPatterns: default_skips});
+      const fireworm = require('fireworm');
+      const default_skips = ['world', 'world_the_end', 'world_nether', 'dynmap', 'plugins', 'web', 'region', 'playerdata', 'stats', 'data'];
+      const fw = fireworm(instance.env.cwd, {skipDirEntryPatterns: default_skips});
 
-      fw.add('**/{0}'.format(rel_filepath));
+      fw.add(`**/${rel_filepath}`);
       fw.on('add', function(fp) {
         if (abs_filepath == fp) {
           fw.clear();
-          logging.info('[{0}] {1} created! Watchfile {2} closed'.format(server_name, path.basename(fp), rel_filepath));
+          logging.info(`[${server_name}] ${path.basename(fp)} created! Watchfile ${rel_filepath} closed`);
           async.nextTick(function() { make_tail(rel_filepath) });
         }
       })
@@ -1053,14 +1057,14 @@ function server_container(server_name, user_config, socket_io) {
   }
 
   self.direct_dispatch = function(user, args) {
-    var introspect = require('introspect');
-    var fn, required_args;
-    var arg_array = [];
+    const introspect = require('introspect');
+    let fn, required_args: any[];
+    const arg_array: any[] = [];
 
     async.waterfall([
       async.apply(instance.property, 'owner'),
       function(ownership_data, cb) {
-        var auth = require('./auth');
+        const auth = require('./auth');
         auth.test_membership(user, ownership_data.groupname, function(is_valid) {
           cb(null, is_valid);
         });
@@ -1070,7 +1074,7 @@ function server_container(server_name, user_config, socket_io) {
       }
     ], function(err) {
       if (err) {
-        logging.error('User "{0}" does not have permissions on [{1}]:'.format(user, args.server_name), args);
+        logging.error(`User "${user}" does not have permissions on [${args.server_name}]:`, args);
       } else {
         try {
           fn = instance[args.command];
@@ -1087,7 +1091,7 @@ function server_container(server_name, user_config, socket_io) {
           return;
         }
 
-        for (var i in required_args) {
+        for (let i in required_args) {
           // all callbacks expected to follow the pattern (success, payload).
           if (required_args[i] == 'callback')
             arg_array.push(function(err, payload) {
@@ -1096,7 +1100,7 @@ function server_container(server_name, user_config, socket_io) {
               args.time_resolved = Date.now();
               nsp.emit('server_fin', args);
               if (err)
-                logging.error('[{0}] command "{1}" errored out:'.format(server_name, args.command), args);
+                logging.error(`[${server_name}] command "${args.command}" errored out:`, args);
               logging.log('server_fin', args)
             })
           else if (required_args[i] in args) {
@@ -1104,7 +1108,7 @@ function server_container(server_name, user_config, socket_io) {
           } else {
             args.success = false;
             logging.error('Provided values missing required argument', required_args[i]);
-            args.error = 'Provided values missing required argument: {0}'.format(required_args[i]);
+            args.error = `Provided values missing required argument: ${required_args[i]}`;
             nsp.emit('server_fin', args);
             return;
           }
@@ -1113,21 +1117,21 @@ function server_container(server_name, user_config, socket_io) {
         if (args.command == 'delete')
           self.cleanup();
 
-        logging.info('[{0}] received request "{1}"'.format(server_name, args.command))
+        logging.info(`[${server_name}] received request "${args.command}"`)
         fn.apply(instance, arg_array);
       }
     })
   }
 
   nsp.on('connection', function(socket) {
-    var ip_address = socket.request.connection.remoteAddress;
-    var username = socket.request.user?.username;
-    var NOTICES_QUEUE_LENGTH = 10; // 0 < q <= 10
+    const ip_address = socket.request.connection.remoteAddress;
+    const username = socket.request.user?.username;
+    const NOTICES_QUEUE_LENGTH = 10; // 0 < q <= 10
 
     function server_dispatcher(args) {
-      var introspect = require('introspect');
-      var fn, required_args;
-      var arg_array = [];
+      const introspect = require('introspect');
+      let fn, required_args;
+      const arg_array: any[] = [];
 
       try {
         fn = instance[args.command];
@@ -1147,16 +1151,16 @@ function server_container(server_name, user_config, socket_io) {
         return;
       }
 
-      for (var i in required_args) {
+      for (let i in required_args) {
         // all callbacks expected to follow the pattern (success, payload).
         if (required_args[i] == 'callback')
-          arg_array.push(function(err, payload) {
+          arg_array.push((err, payload) => {
             args.success = !err;
             args.err = err;
             args.time_resolved = Date.now();
             nsp.emit('server_fin', args);
             if (err)
-              logging.error('[{0}] command "{1}" errored out:'.format(server_name, args.command), args);
+              logging.error(`[${server_name}] command "${args.command}" errored out:`, args);
             logging.log('server_fin', args)
 
             while (notices.length > NOTICES_QUEUE_LENGTH)
@@ -1170,7 +1174,7 @@ function server_container(server_name, user_config, socket_io) {
         } else {
           args.success = false;
           logging.error('Provided values missing required argument', required_args[i]);
-          args.error = 'Provided values missing required argument: {0}'.format(required_args[i]);
+          args.error = `Provided values missing required argument: ${required_args[i]}`;
           nsp.emit('server_fin', args);
           return;
         }
@@ -1179,14 +1183,14 @@ function server_container(server_name, user_config, socket_io) {
       if (args.command == 'delete')
         self.cleanup();
 
-      logging.info('[{0}] received request "{1}"'.format(server_name, args.command))
+      logging.info(`[${server_name}] received request "${args.command}"`)
       fn.apply(instance, arg_array);
     }
 
     function produce_receipt(args) {
       /* when a command is received, immediately respond to client it has been received */
-      var uuid = require('node-uuid');
-      logging.info('[{0}] {1} issued command : "{2}"'.format(server_name, ip_address, args.command))
+      const uuid = require('node-uuid');
+      logging.info(`[${server_name}] ${ip_address} issued command : "${args.command}"`)
       args.uuid = uuid.v1();
       args.time_initiated = Date.now();
       nsp.emit('server_ack', args);
@@ -1208,7 +1212,7 @@ function server_container(server_name, user_config, socket_io) {
               args.success = false;
               args.err = err;
               args.time_resolved = Date.now();
-              logging.error('[{0}] command "{1}" errored out:'.format(server_name, args.command), args);
+              logging.error(`[${server_name}] command "${args.command}" errored out:`, args);
               nsp.emit('server_fin', args);
             } else {
               server_dispatcher(args);
@@ -1225,9 +1229,9 @@ function server_container(server_name, user_config, socket_io) {
     function get_file_contents(rel_filepath) {
       if (rel_filepath in tails) { //this is the protection from malicious client
         // a tail would only exist for a file the server itself has opened
-        var fs = require('fs');
-        var abs_filepath = path.join(instance.env['cwd'], rel_filepath);
-        var FILESIZE_LIMIT_THRESHOLD = 256000;
+        const fs = require('fs');
+        const abs_filepath = path.join(instance.env['cwd'], rel_filepath);
+        const FILESIZE_LIMIT_THRESHOLD = 256000;
 
         async.waterfall([
           async.apply(fs.stat, abs_filepath),
@@ -1236,13 +1240,13 @@ function server_container(server_name, user_config, socket_io) {
           },
           async.apply(fs.readFile, abs_filepath),
           function(data, cb) {
-            logging.info('[{0}] transmittting existing file contents: {1} ({2} bytes)'.format(server_name, rel_filepath, data.length));
+            logging.info(`[${server_name}] transmittting existing file contents: ${rel_filepath} (${data.length} bytes)`);
             nsp.emit('file head', {filename: rel_filepath, payload: data.toString()});
             cb();
           }
         ], function(err) {
           if (err) {
-            var msg = "File is too large (> {0} KB).  Only newly added lines will appear here.".format(FILESIZE_LIMIT_THRESHOLD/1000);
+            const msg = `File is too large (> ${FILESIZE_LIMIT_THRESHOLD / 1000} KB).  Only newly added lines will appear here.`;
             nsp.emit('file head', {filename: rel_filepath, payload: msg });
           }
         })
@@ -1250,14 +1254,14 @@ function server_container(server_name, user_config, socket_io) {
     }
 
     function get_available_tails() {
-      for (t in tails)
+      for (const t in tails)
         get_file_contents(tails[t].filename.replace(instance.env.cwd + '/', ''));
     }
 
     function get_prop(requested) {
-      logging.info('[{0}] {1} requesting property: {2}'.format(server_name, ip_address, requested.property));
+      logging.info(`[${server_name}] ${ip_address} requesting property: ${requested.property}`);
       instance.property(requested.property, function(err, retval) {
-        logging.info('[{0}] returned to {1}: {2}'.format(server_name, ip_address, retval));
+        logging.info(`[${server_name}] returned to ${ip_address}: ${retval}`);
         nsp.emit('server_fin', {'server_name': server_name, 'property': requested.property, 'payload': retval});
       })
     }
@@ -1265,7 +1269,7 @@ function server_container(server_name, user_config, socket_io) {
     function get_page_data(page) {
       switch (page) {
         case 'glance':
-          logging.debug('[{0}] {1} requesting server at a glance info'.format(server_name, username));
+          logging.debug(`[${server_name}] ${username} requesting server at a glance info`);
 
           async.parallel({
             'increments': async.apply(instance.list_increments),
@@ -1282,7 +1286,7 @@ function server_container(server_name, user_config, socket_io) {
             }
           }, function(err, results) {
             if (err instanceof Object)
-              logging.error('[{0}] Error with get_page_data'.format(server_name), err, results);
+              logging.error(`[${server_name}] Error with get_page_data`, err, results);
             nsp.emit('page_data', {page: page, payload: results});
           })
           break;
@@ -1293,12 +1297,12 @@ function server_container(server_name, user_config, socket_io) {
     }
 
     function manage_cron(opts) {
-      var uuid = require('node-uuid');
-      var hash = require('object-hash');
-      var CronJob = require('cron').CronJob;
+      const uuid = require('node-uuid');
+      const hash = require('object-hash');
+      const CronJob = require('cron').CronJob;
 
       function reload_cron(callback) {
-        for (var c in cron) {
+        for (let c in cron) {
           try {
             cron[c].stop();
           } catch (e) {}
@@ -1306,7 +1310,7 @@ function server_container(server_name, user_config, socket_io) {
         cron = {};
 
         instance.crons(function(err, cron_dict) {
-          for (var cronhash in cron_dict) {
+          for (let cronhash in cron_dict) {
             if (cron_dict[cronhash].enabled) {
               try {
                 cron[cronhash] = new CronJob({
@@ -1319,7 +1323,7 @@ function server_container(server_name, user_config, socket_io) {
                 });
               } catch (e) {
                 //catches invalid cron pattern, disables cron
-                logging.warn('[{0}] {1} invalid cron expression submitted:'.format(server_name, ip_address), cron_dict[cronhash].source);
+                logging.warn(`[${server_name}] ${ip_address} invalid cron expression submitted:`, cron_dict[cronhash].source);
                 instance.set_cron(opts.hash, false, function(){});
               }
             }
@@ -1328,13 +1332,13 @@ function server_container(server_name, user_config, socket_io) {
         })
       }
 
-      var operation = opts.operation;
+      const operation = opts.operation;
       delete opts.operation;
 
       switch (operation) {
         case 'create':
-          var cron_hash = hash(opts);
-          logging.log('[{0}] {1} requests cron creation:'.format(server_name, ip_address), cron_hash, opts);
+          const cron_hash = hash(opts);
+          logging.log(`[${server_name}] ${ip_address} requests cron creation:`, cron_hash, opts);
 
           opts['enabled'] = false;
 
@@ -1344,7 +1348,7 @@ function server_container(server_name, user_config, socket_io) {
           ])
           break;
         case 'delete':
-          logging.log('[{0}] {1} requests cron deletion: {2}'.format(server_name, ip_address, opts.hash));
+          logging.log(`[${server_name}] ${ip_address} requests cron deletion: ${opts.hash}`);
 
           try {
             cron[opts.hash].stop();
@@ -1360,7 +1364,7 @@ function server_container(server_name, user_config, socket_io) {
           ])
           break;
         case 'start':
-          logging.log('[{0}] {1} starting cron: {2}'.format(server_name, ip_address, opts.hash));
+          logging.log(`[${server_name}] ${ip_address} starting cron: ${opts.hash}`);
 
           async.series([
             async.apply(instance.set_cron, opts.hash, true),
@@ -1368,7 +1372,7 @@ function server_container(server_name, user_config, socket_io) {
           ])
           break;
         case 'suspend':
-          logging.log('[{0}] {1} suspending cron: {2}'.format(server_name, ip_address, opts.hash));
+          logging.log(`[${server_name}] ${ip_address} suspending cron: ${opts.hash}`);
 
           async.series([
             async.apply(instance.set_cron, opts.hash, false),
@@ -1376,14 +1380,14 @@ function server_container(server_name, user_config, socket_io) {
           ])
           break;
         default:
-          logging.warn('[{0}] {1} requested unexpected cron operation: {2}'.format(server_name, ip_address, operation), opts);
+          logging.warn(`[${server_name}] ${ip_address} requested unexpected cron operation: ${operation}`, opts);
       }
     }
 
     async.waterfall([
       async.apply(instance.property, 'owner'),
       function(ownership_data, cb) {
-        var auth = require('./auth');
+        const auth = require('./auth');
         auth.test_membership(username, ownership_data.groupname, function(is_valid) {
           cb(null, is_valid);
         });
@@ -1395,7 +1399,7 @@ function server_container(server_name, user_config, socket_io) {
       if (err)
         socket.disconnect();
       else {
-        logging.info('[{0}] {1} ({2}) joined server namespace'.format(server_name, username, ip_address));
+        logging.info(`[${server_name}] ${username} (${ip_address}) joined server namespace`);
 
         socket.on('command', produce_receipt);
         socket.on('get_file_contents', get_file_contents);
@@ -1415,3 +1419,4 @@ function server_container(server_name, user_config, socket_io) {
   }) //nsp on connect container ends
 }
 
+export default server;

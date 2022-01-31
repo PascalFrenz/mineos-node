@@ -1,7 +1,7 @@
 {
   "name": "mineos-node",
   "description": "A Minecraft server manager and web user interface",
-  "main": "mineos.js",
+  "main": "mineos.ts",
   "version": "1.1.1",
   "author": "William Dizon",
   "license": "GPL-3.0",
@@ -18,10 +18,11 @@
   },
   "homepage": "https://github.com/hexparrot/mineos-node",
   "scripts": {
-    "start": "node webui.js",
-    "dev": "nodemon webui.js"
+    "start": "ts-node webui.ts",
+    "dev": "nodemon webui.ts"
   },
   "dependencies": {
+    "authenticate-pam": "^1.0.5",
     "adm-zip": "^0.4.11",
     "angular": "1.5.x",
     "angular-moment": "1.0.x",
@@ -82,7 +83,11 @@
     "xml2js": "^0.4.19"
   },
   "devDependencies": {
+    "@types/node": "^17.0.13",
     "nodemon": "^2.0.9",
-    "nodeunit": "^0.11.3"
+    "nodeunit": "^0.11.3",
+    "ts-node": "^10.4.0",
+    "tslib": "^2.3.1",
+    "typescript": "^4.5.5"
   }
 }

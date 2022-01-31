@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-
-var daemon = require("daemonize2").setup({
-    main: "webui.js",
+import {setup} from "daemonize2";
+const daemon = setup({
+    main: "webui.ts",
     name: "mineos",
     pidfile: "/var/run/mineos.pid"
 });
@@ -16,12 +16,10 @@ switch (process.argv[2]) {
         daemon.start();
         break;
     case "stop":
-        daemon.stop();
+        daemon.stop(() => {});
         break;
     case "restart":
-        daemon.stop(function(err) {
-            daemon.start();
-        });
+        daemon.stop(() => daemon.start());
         break;
     case "status":
         var pid = daemon.status();

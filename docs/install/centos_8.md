@@ -46,7 +46,7 @@ The following steps install `openjdk16` into a neutral space (`/opt`) and then s
 # git clone https://github.com/hexparrot/mineos-node minecraft
 # cd minecraft
 # git config core.filemode false
-# chmod +x generate-sslcert.sh mineos_console.js webui.js
+# chmod +x generate-sslcert.sh mineos_console.ts webui.ts
 # cp mineos.conf /etc/mineos.conf
 ```
 

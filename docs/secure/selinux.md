@@ -65,7 +65,7 @@ drwxr-xr-x.   8 root root system_u:object_r:mineos_t:s0            4096 Jul  1 0
 -rw-r--r--.   1 root root system_u:object_r:mineos_t:s0             578 Jun 16 14:21 Makefile
 ...
 -rw-r--r--.   1 root root system_u:object_r:mineos_exec_t:s0       1073 Jun 24 20:03 update_webui.sh
--rwxr-xr-x.   1 root root system_u:object_r:mineos_exec_t:s0       8946 Jun 27 02:15 webui.js*
+-rwxr-xr-x.   1 root root system_u:object_r:mineos_exec_t:s0       8946 Jun 27 02:15 webui.ts*
 ```
 
 ## Understand the New Contexts

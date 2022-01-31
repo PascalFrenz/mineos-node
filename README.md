@@ -52,11 +52,11 @@ For hosts using 'systemd':
 
 To use the webui as a background daemon:
 
-    node service.js [start|stop|restart|status]
+    node service.ts [start|stop|restart|status]
 
 To start the webui in the foreground:
 
-    node webui.js
+    node webui.ts
 
 Things to watch out for
 ------

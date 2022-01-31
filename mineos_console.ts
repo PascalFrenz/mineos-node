@@ -1,26 +1,26 @@
 #!/usr/bin/env node
 
-var getopt = require('node-getopt');
-var mineos = require('./mineos');
+const getopt = require('node-getopt');
+const mineos = require('./mineos');
 
-var opt = getopt.create([
-  ['s' , 'server_name=SERVER_NAME'  , 'server name'],
-  ['d' , 'base_dir=BASE_DIR'        , 'defaults to /var/games/minecraft'],
-  ['D' , 'debug'                    , 'show debug output'],
-  ['V' , 'version'                  , 'show version'],
-  ['h' , 'help'                     , 'display this help']
+const opt = getopt.create([
+  ['s', 'server_name=SERVER_NAME', 'server name'],
+  ['d', 'base_dir=BASE_DIR', 'defaults to /var/games/minecraft'],
+  ['D', 'debug', 'show debug output'],
+  ['V', 'version', 'show version'],
+  ['h', 'help', 'display this help']
 ])              // create Getopt instance
-.bindHelp()     // bind option 'help' to default action
-.parseSystem(); // parse command line
+    .bindHelp()     // bind option 'help' to default action
+    .parseSystem(); // parse command line
 
 function return_git_commit_hash(callback) {
-  var child_process = require('child_process');
+  const child_process = require('child_process');
 
-  var gitproc = child_process.spawn('git', 'log -n 1 --pretty=format:"%H"'.split(' '));
-  var commit_value = '';
+  const gitproc = child_process.spawn('git', 'log -n 1 --pretty=format:"%H"'.split(' '));
+  let commit_value = '';
 
   gitproc.stdout.on('data', function(data) {
-    var buffer = new Buffer(data, 'ascii');
+    const buffer = new Buffer(data, 'ascii');
     commit_value = buffer.toString('ascii');
   });
 
@@ -39,32 +39,28 @@ function return_git_commit_hash(callback) {
 }
 
 function handle_server(args, callback) {
-  var introspect = require('introspect');
+  const introspect = require('introspect');
 
-  var base_dir = (args.options || {}).d || '/var/games/minecraft';
-  var command = args.argv.shift();
-  var fn = instance[command];
-  var arg_array = [];
-  var required_args = introspect(fn);
+  const base_dir = (args.options || {}).d || '/var/games/minecraft';
+  const command = args.argv.shift();
+  const fn = instance[command];
+  const arg_array: any[] = [];
+  const required_args = introspect(fn);
 
   while (required_args.length) {
-    var ra = required_args.shift();
+    const ra = required_args.shift();
 
     switch (ra) {
       case 'callback':
         arg_array.push(function(err, payload) {
-          var retval = [];
+          const retval: any[] = [];
 
           if (!err) {
-            retval.push('[{0}] Successfully executed "{1}"'.format(args.options.server_name, command));
+            retval.push(`[${args.options.server_name}] Successfully executed "${command}"`);
             if (payload)
               retval.push(payload)
           } else {
-            retval.push('[{0}] Error executing "{1}" because server condition not met: {2}'.format(
-              args.options.server_name, 
-              command,
-              err)
-            );
+            retval.push(`[${args.options.server_name}] Error executing "${command}" because server condition not met: ${err}`);
           }
 
           callback( (err ? 1 : 0), retval );
@@ -72,7 +68,7 @@ function handle_server(args, callback) {
         break;
       case 'owner':
         try {
-          var owner_pair = opt.argv.shift().split(':');
+          const owner_pair = opt.argv.shift().split(':');
           if (owner_pair.length != 2)
             throw 'err';
           arg_array.push({
@@ -94,20 +90,17 @@ function handle_server(args, callback) {
 }
 
 function retrieve_property(args, callback) {
-  var property = args.argv.shift();
-  var fn = instance.property;
-  var arg_array = [property];
-  var retval = [];
+  const property = args.argv.shift();
+  const fn = instance.property;
+  const arg_array = [property];
+  const retval: any[] = [];
 
   arg_array.push(function(err, payload) {
     if (!err && payload !== undefined) {
-      retval.push('[{0}] Queried property: "{1}"'.format(args.options.server_name, property));
+      retval.push(`[${args.options.server_name}] Queried property: "${property}"`);
       retval.push(payload);
     } else {
-      retval.push('[{0}] Error querying property "{1}"'.format(
-        args.options.server_name, 
-        property,
-        err));
+      retval.push(`[${args.options.server_name}] Error querying property "${property}: ${err}"`);
     }
     callback( (err ? 1 : 0), retval);
   })
@@ -115,7 +108,8 @@ function retrieve_property(args, callback) {
   fn.apply(instance, arg_array);
 }
 
-var base_dir = (opt.options || {}).base_dir || '/var/games/minecraft';
+const base_dir = (opt.options || {}).base_dir || '/var/games/minecraft';
+let instance;
 
 if ('version' in opt.options) {
   return_git_commit_hash(function(code, hash) {
@@ -124,26 +118,18 @@ if ('version' in opt.options) {
     process.exit(code);
   })
 } else {
-  var instance = new mineos.mc(opt.options.server_name, base_dir);
+  instance = new mineos.mc(opt.options.server_name, base_dir);
   if (opt.argv[0] in instance) { //first provided param matches a function name) {
     handle_server(opt, function(code, retval) {
-      for (var idx in retval)
+      for (let idx in retval)
         console.log(retval[idx])
       process.exit(code);
     })
   } else {
     retrieve_property(opt, function(code, retval) {
-      for (var idx in retval)
+      for (let idx in retval)
         console.log(retval[idx])
       process.exit(code);
     })
   }
 }
-
-String.prototype.format = function() {
-  var s = this;
-  for(var i = 0, iL = arguments.length; i<iL; i++) {
-    s = s.replace(new RegExp('\\{'+i+'\\}', 'gm'), arguments[i]);
-  }
-  return s;
-};

@@ -1,10 +1,11 @@
-var fs = require('fs-extra');
-var path = require('path');
-var events = require('events');
-var async = require('async');
-var child_process = require('child_process');
-var which = require('which');
-var mineos = exports;
+import fs from "fs-extra";
+import path from "path";
+import async from "async";
+import child_process from "child_process";
+import which from "which";
+import du from "du";
+
+let mineos: any = {};
 
 mineos.DIRS = {
   'servers': 'servers',
@@ -29,14 +30,14 @@ mineos.SP_DEFAULTS = {
   'enable-query': 'false'
 }
 
-var proc_paths = [
+const proc_paths = [
   '/usr/compat/linux/proc',
   '/system/lxproc',
   '/proc',
   '/compat/linux/proc'
-]
+];
 
-var PROC_PATH = null;
+let PROC_PATH = '';
 
 for (var proc in proc_paths) {
   try {
@@ -55,13 +56,19 @@ mineos.server_list_up = function() {
 }
 
 mineos.server_pids_up = function() {
-  var cmdline, environ, match;
-  var pids = fs.readdirSync(PROC_PATH).filter(function(e) { if (/^([0-9]+)$/.test(e)) {return e} });
-  var SCREEN_REGEX = /screen[^S]+S mc-([^\s]+)/i;
-  var JAVA_REGEX = /\.mc-([^\s]+)/i;
-  var servers_found = {};
+  let cmdline, environ, match;
+  const pids = fs.readdirSync(PROC_PATH).filter(function (e) {
+    if (/^([0-9]+)$/.test(e)) {
+      return e
+    }
+  });
+  const SCREEN_REGEX = /screen[^S]+S mc-([^\s]+)/i;
+  const JAVA_REGEX = /\.mc-([^\s]+)/i;
+  const servers_found = {};
+  let screen_match;
+  let java_match;
 
-  for (var i=0; i < pids.length; i++) {
+  for (let i=0; i < pids.length; i++) {
     try {
       cmdline = fs.readFileSync(path.join(PROC_PATH, pids[i].toString(), 'cmdline'))
                               .toString('ascii')
@@ -100,14 +107,14 @@ mineos.server_pids_up = function() {
 }
 
 mineos.valid_server_name = function(server_name) {
-  var regex_valid_server_name = /^(?!\.)[a-zA-Z0-9_\.]+$/;
+  const regex_valid_server_name = /^(?!\.)[a-zA-Z0-9_.]+$/;
   return regex_valid_server_name.test(server_name);
 }
 
 mineos.extract_server_name = function(base_dir, server_path) {
-  var re = new RegExp('{0}/([a-zA-Z0-9_\.]+)'.format(path.join(base_dir, mineos.DIRS['servers'])));
+  const re = new RegExp(`${path.join(base_dir, mineos.DIRS['servers'])}/([a-zA-Z0-9_.]+)`);
   try {
-    return re.exec(server_path)[1];
+    return re.exec(server_path)?.[1];
   } catch(e) {
     throw new Error('no server name in path');
   }
@@ -124,10 +131,10 @@ mineos.dependencies = async.memoize(function(callback) {
 })
 
 mineos.mc = function(server_name, base_dir) {
-  var self = this;
+  const self = this;
   self.server_name = server_name;
 
-  process.umask(0002);
+  process.umask(0o002);
 
   self.env = {
     base_dir: base_dir,
@@ -142,11 +149,11 @@ mineos.mc = function(server_name, base_dir) {
 
   // ini related functions and vars
 
-  var memoized_files = {};
-  var memoize_timestamps = {};
+  const memoized_files = {};
+  let memoize_timestamps = {};
 
   function read_ini(filepath, callback) {
-    var ini = require('ini');
+    const ini = require('ini');
 
     fs.readFile(filepath, function(err, data) {
       if (err) {
@@ -162,7 +169,7 @@ mineos.mc = function(server_name, base_dir) {
   // server properties functions
 
   self.sp = function(callback) {
-    var fn = 'server.properties';
+    const fn = 'server.properties';
     async.waterfall([
       async.apply(fs.stat, self.env.sp),
       function(stat_data, cb) {
@@ -179,7 +186,7 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.modify_sp = function(property, new_value, callback) {
-    var ini = require('ini');
+    const ini = require('ini');
 
     async.waterfall([
       async.apply(self.sp),
@@ -195,10 +202,10 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.overlay_sp = function(dict, callback) {
-    var ini = require('ini');
+    const ini = require('ini');
 
     self.sp(function(err, props) {
-      for (var key in dict)
+      for (let key in dict)
         props[key] = dict[key];
 
       self._sp = props;
@@ -209,7 +216,7 @@ mineos.mc = function(server_name, base_dir) {
 
   // server config functions
   self.sc = function(callback) {
-    var fn = 'server.config';
+    const fn = 'server.config';
     async.waterfall([
       async.apply(fs.stat, self.env.sc),
       function(stat_data, cb) {
@@ -234,7 +241,7 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.modify_sc = function(section, property, new_value, callback) {
-    var ini = require('ini');
+    const ini = require('ini');
 
     async.waterfall([
       async.apply(self.sc),
@@ -260,7 +267,7 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.add_cron = function(identifier, definition, callback) {
-    var ini = require('ini');
+    const ini = require('ini');
 
     async.waterfall([
       async.apply(self.crons),
@@ -276,7 +283,7 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.delete_cron = function(identifier, callback) {
-    var ini = require('ini');
+    const ini = require('ini');
 
     async.waterfall([
       async.apply(self.crons),
@@ -291,7 +298,7 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.set_cron = function(identifier, enabled, callback) {
-    var ini = require('ini');
+    const ini = require('ini');
 
     async.waterfall([
       async.apply(self.crons),
@@ -351,8 +358,8 @@ mineos.mc = function(server_name, base_dir) {
   self.create_from_archive = function(owner, filepath, callback) {
 
     function move_to_parent_dir(source_dir, inner_callback) {
-      var remainder = null;
-      var attempted_move = false;
+      let remainder = '';
+      const attempted_move = false;
 
       async.waterfall([
         async.apply(fs.readdir, source_dir),
@@ -361,9 +368,9 @@ mineos.mc = function(server_name, base_dir) {
             remainder = files[0];
             cb(null);
           } else if (files.length == 4) {
-            var sp_idx = files.indexOf('server.properties');
-            var sc_idx = files.indexOf('server.config');
-            var cc_idx = files.indexOf('cron.config');
+            const sp_idx = files.indexOf('server.properties');
+            const sc_idx = files.indexOf('server.config');
+            const cc_idx = files.indexOf('cron.config');
             if (sp_idx >= 0) { files.splice(sp_idx, 1) }
             if (sc_idx >= 0) { files.splice(sc_idx, 1) }
             if (cc_idx >= 0) { files.splice(cc_idx, 1) }
@@ -373,8 +380,8 @@ mineos.mc = function(server_name, base_dir) {
             cb(true);
         },
         function(cb) {
-          var attempted_move = true;
-          var inside_dir = path.join(source_dir, remainder);
+          const attempted_move = true;
+          const inside_dir = path.join(source_dir, remainder);
           fs.lstat(inside_dir, function(err, stat) {
             if (stat.isDirectory)
               cb(null);
@@ -383,13 +390,13 @@ mineos.mc = function(server_name, base_dir) {
           })
         },
         function(cb) {
-          var old_dir = path.join(source_dir, remainder);
+          const old_dir = path.join(source_dir, remainder);
 
           fs.readdir(old_dir, function(err, files) {
             if (!err)
               async.each(files, function(file, inner_cb) {
-                var old_filepath = path.join(old_dir, file);
-                var new_filepath = path.join(source_dir, file);
+                const old_filepath = path.join(old_dir, file);
+                const new_filepath = path.join(source_dir, file);
 
                 fs.move(old_filepath, new_filepath, { clobber: true }, inner_cb)
               }, cb);
@@ -405,13 +412,14 @@ mineos.mc = function(server_name, base_dir) {
       });
     }
 
+    let dest_filepath;
     if (filepath.match(/\//))  //if it has a '/', its hopefully an absolute path
-      var dest_filepath = filepath;
+      dest_filepath = filepath;
     else // if it doesn't treat it as being from /import/
-      var dest_filepath = path.join(self.env.base_dir, mineos.DIRS['import'], filepath);
+      dest_filepath = path.join(self.env.base_dir, mineos.DIRS['import'], filepath);
 
-    var split = dest_filepath.split('.');
-    var extension = split.pop();
+    const split = dest_filepath.split('.');
+    let extension = split.pop();
 
     if (extension == 'gz')
       if (split.pop() == 'tar')
@@ -419,15 +427,15 @@ mineos.mc = function(server_name, base_dir) {
 
     switch (extension) {
       case 'zip':
-        var DecompressZip = require('decompress-zip');
+        const DecompressZip = require('decompress-zip');
 
-        function unzipper_it(cb) {
-          var unzipper = new DecompressZip(dest_filepath);
+      function unzipper_it(cb) {
+          const unzipper = new DecompressZip(dest_filepath);
 
           unzipper.on('error', function (err) {
             cb(err);
           });
-         
+
           unzipper.on('extract', function (log) {
             move_to_parent_dir(self.env.cwd, cb);
           });
@@ -447,17 +455,19 @@ mineos.mc = function(server_name, base_dir) {
       case 'tar.gz':
       case 'tgz':
       case 'tar':
-        var binary = which.sync('tar');
-        var args = ['-xf', dest_filepath];
-        var params = { cwd: self.env.cwd,
-                       uid: owner.uid,
-                       gid: owner.gid };
+        const binary = which.sync('tar');
+        const args = ['-xf', dest_filepath];
+        const params = {
+          cwd: self.env.cwd,
+          uid: owner.uid,
+          gid: owner.gid
+        };
 
         async.series([
           async.apply(self.create, owner),
           function(cb) {
             memoize_timestamps = {};
-            var proc = child_process.spawn(binary, args, params);
+            const proc = child_process.spawn(binary, args, params);
             proc.once('exit', function(code) {
               cb(code);
             })
@@ -468,7 +478,7 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.accept_eula = function(callback) {
-    var EULA_PATH = path.join(self.env.cwd, 'eula.txt');
+    const EULA_PATH = path.join(self.env.cwd, 'eula.txt');
 
     async.waterfall([
       async.apply(fs.outputFile, EULA_PATH, 'eula=true'),
@@ -492,33 +502,33 @@ mineos.mc = function(server_name, base_dir) {
   self.get_start_args = function(callback) {
 
     function type_jar_unconventional (inner_callback) {
-      var java_binary = which.sync('java');
+      const java_binary = which.sync('java');
 
       async.series({
         'binary': function (cb) {
           self.sc(function (err, dict) {
-            var value = (dict.java || {}).java_binary || java_binary;
+            const value = (dict.java || {}).java_binary || java_binary;
             cb((value.length ? null : 'No java binary assigned for server.'), value);
           });
         },
         'xmx': function (cb) {
           self.sc(function (err, dict) {
-            var value = parseInt((dict.java || {}).java_xmx) || 0;
-            
+            const value = parseInt((dict.java || {}).java_xmx) || 0;
+
             cb((value >= 0 ? null : 'XMX heapsize must be positive integer >= 0'), value);
           });
         },
         'xms': function (cb) {
           self.sc(function (err, dict) {
-            var xmx = parseInt((dict.java || {}).java_xmx) || 0;
-            var xms = parseInt((dict.java || {}).java_xms) || 0;
+            const xmx = parseInt((dict.java || {}).java_xmx) || 0;
+            const xms = parseInt((dict.java || {}).java_xms) || 0;
 
             cb((xmx >= xms && xms >= 0 ? null : 'XMS heapsize must be positive integer where XMX >= XMS >= 0'), xms);
           });
         },
         'jarfile': function (cb) {
           self.sc(function (err, dict) {
-            var jarfile = (dict.java || {}).jarfile;
+            const jarfile = (dict.java || {}).jarfile;
             if (!jarfile)
               cb('Server not assigned a runnable jar');
             else
@@ -527,13 +537,13 @@ mineos.mc = function(server_name, base_dir) {
         },
         'jar_args': function (cb) {
           self.sc(function (err, dict) {
-            var value = (dict.java || {}).jar_args || '';
+            const value = (dict.java || {}).jar_args || '';
             cb(null, value);
           });
         },
         'java_tweaks': function (cb) {
           self.sc(function (err, dict) {
-            var value = (dict.java || {}).java_tweaks || null;
+            const value = (dict.java || {}).java_tweaks || null;
             cb(null, value);
           });
         }
@@ -541,14 +551,14 @@ mineos.mc = function(server_name, base_dir) {
         if (err) {
           inner_callback(err, {});
         } else {
-          var args = ['-dmS', 'mc-{0}'.format(self.server_name)];
+          const args = ['-dmS', `mc-${self.server_name}`];
           args.push.apply(args, [results.binary, '-server']);
 
           if (results.xmx > 0)
-            args.push('-Xmx{0}M'.format(results.xmx));
+            args.push(`-Xmx${results.xmx}M`);
           if (results.xms > 0)
-            args.push('-Xms{0}M'.format(results.xms));
-          
+            args.push(`-Xms${results.xms}M`);
+
           if (results.java_tweaks) {
             var splits = results.java_tweaks.split(/ /);
             for (var i in splits)
@@ -569,32 +579,32 @@ mineos.mc = function(server_name, base_dir) {
     }
 
     function type_jar(inner_callback) {
-      var java_binary = which.sync('java');
+      const java_binary = which.sync('java');
 
       async.series({
         'binary': function (cb) {
           self.sc(function (err, dict) {
-            var value = (dict.java || {}).java_binary || java_binary;
+            const value = (dict.java || {}).java_binary || java_binary;
             cb((value.length ? null : 'No java binary assigned for server.'), value);
           });
         },
         'xmx': function (cb) {
           self.sc(function (err, dict) {
-            var value = parseInt((dict.java || {}).java_xmx) || 0;
+            const value = parseInt((dict.java || {}).java_xmx) || 0;
 
             cb((value > 0 ? null : 'XMX heapsize must be positive integer > 0'), value);
           });
         },
         'xms': function (cb) {
           self.sc(function (err, dict) {
-            var xmx = parseInt((dict.java || {}).java_xmx) || 0;
-            var xms = parseInt((dict.java || {}).java_xms) || xmx;
+            const xmx = parseInt((dict.java || {}).java_xmx) || 0;
+            const xms = parseInt((dict.java || {}).java_xms) || xmx;
             cb((xmx >= xms && xms > 0 ? null : 'XMS heapsize must be positive integer where XMX >= XMS > 0'), xms);
           });
         },
         'jarfile': function (cb) {
           self.sc(function (err, dict) {
-            var jarfile = (dict.java || {}).jarfile;
+            const jarfile = (dict.java || {}).jarfile;
             if (!jarfile)
               cb('Server not assigned a runnable jar');
             else
@@ -603,13 +613,13 @@ mineos.mc = function(server_name, base_dir) {
         },
         'jar_args': function (cb) {
           self.sc(function (err, dict) {
-            var value = (dict.java || {}).jar_args || 'nogui';
+            const value = (dict.java || {}).jar_args || 'nogui';
             cb(null, value);
           });
         },
         'java_tweaks': function (cb) {
           self.sc(function (err, dict) {
-            var value = (dict.java || {}).java_tweaks || null;
+            const value = (dict.java || {}).java_tweaks || null;
             cb(null, value);
           });
         }
@@ -617,8 +627,8 @@ mineos.mc = function(server_name, base_dir) {
         if (err) {
           inner_callback(err, {});
         } else {
-          var args = ['-dmS', 'mc-{0}'.format(self.server_name)];
-          args.push.apply(args, [results.binary, '-server', '-Xmx{0}M'.format(results.xmx), '-Xms{0}M'.format(results.xms)]);
+          const args = ['-dmS', `mc-${self.server_name}`];
+          args.push.apply(args, [results.binary, '-server', `-Xmx${results.xmx}M`, `-Xms${results.xms}M`]);
 
           if (results.java_tweaks) {
             var splits = results.java_tweaks.split(/ /);
@@ -646,7 +656,7 @@ mineos.mc = function(server_name, base_dir) {
     function type_phar(inner_callback) {
       async.series({
         'binary': function (cb) {
-          var php7 = path.join(self.env.cwd, '/bin/php7/bin/php');
+          const php7 = path.join(self.env.cwd, '/bin/php7/bin/php');
           try {
             fs.accessSync(php7, fs.F_OK)
             cb(null, './bin/php7/bin/php');
@@ -656,7 +666,7 @@ mineos.mc = function(server_name, base_dir) {
         },
         'pharfile': function (cb) {
           self.sc(function (err, dict) {
-            var pharfile = (dict.java || {}).jarfile;
+            const pharfile = (dict.java || {}).jarfile;
             if (!pharfile)
               cb('Server not assigned a runnable phar');
             else
@@ -667,22 +677,22 @@ mineos.mc = function(server_name, base_dir) {
         if (err) {
           inner_callback(err, {});
         } else {
-          var args = ['-dmS', 'mc-{0}'.format(self.server_name), results.binary, results.pharfile];
+          const args = ['-dmS', `mc-${self.server_name}`, results.binary, results.pharfile];
           inner_callback(null, args);
         }
       })
     }
 
     function type_cuberite(inner_callback) {
-      var args = ['-dmS', 'mc-{0}'.format(self.server_name), './Cuberite'];
+      const args = ['-dmS', `mc-${self.server_name}`, './Cuberite'];
       inner_callback(null, args);
     }
 
     async.waterfall([
       async.apply(self.sc),
       function(sc_data, cb) {
-        var jarfile = (sc_data.java || {}).jarfile;
-        var unconventional = (sc_data.minecraft || {}).unconventional;
+        const jarfile = (sc_data.java || {}).jarfile;
+        const unconventional = (sc_data.minecraft || {}).unconventional;
 
         if (!jarfile)
           cb('Cannot start server without a designated jar/phar.', null);
@@ -701,16 +711,16 @@ mineos.mc = function(server_name, base_dir) {
 
   self.copy_profile = function(callback) {
     function rsync_profile(source, dest, username, groupname, callback_er) {
-      var rsync = require('rsync');
-      
-      var obj = rsync.build({
+      const rsync = require('rsync');
+
+      const obj = rsync.build({
         source: source,
         destination: dest,
         flags: 'au',
-        shell:'ssh'
+        shell: 'ssh'
       });
 
-      obj.set('--chown', '{0}:{1}'.format(username, groupname));
+      obj.set('--chown', `${username}:${groupname}`);
       obj.set('--chmod' ,'ug=rwX');
 
       obj.execute(function(error, code, cmd) {
@@ -718,7 +728,7 @@ mineos.mc = function(server_name, base_dir) {
       });
     }
 
-    var owner_info = null;
+    let owner_info = null;
 
     async.waterfall([
       async.apply(self.verify, 'exists'),
@@ -731,9 +741,9 @@ mineos.mc = function(server_name, base_dir) {
       async.apply(self.sc),
       function(sc, cb) {
         if ((sc.minecraft || {}).profile) {
-          var source = path.join(self.env.pwd, sc.minecraft.profile) + '/';
-          var dest = self.env.cwd + '/';
-          rsync_profile(source, dest, owner_info['username'], owner_info['groupname'], cb);
+          const source = path.join(self.env.pwd, sc.minecraft.profile) + '/';
+          const dest = self.env.cwd + '/';
+          rsync_profile(source, dest, owner_info?.['username'], owner_info?.['groupname'], cb);
         } else {
           cb(null);
         }
@@ -742,23 +752,23 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.profile_delta = function(profile, callback) {
-    var rsync = require('rsync');
-    var stdout = [];
-    var stderr = [];
+    const rsync = require('rsync');
+    const stdout: any[] = [];
+    const stderr: any[] = [];
 
     async.waterfall([
       function(cb) {
-        var obj = rsync.build({
+        const obj = rsync.build({
           source: path.join(self.env.pwd, profile) + '/',
           destination: self.env.cwd + '/',
           flags: 'vrun',
-          shell:'ssh',
-          output: [function(output) {
-                    stdout.push(output);
-                  }, 
-                  function(output) {
-                    stderr.push(output);
-                  }]
+          shell: 'ssh',
+          output: [function (output) {
+            stdout.push(output);
+          },
+            function (output) {
+              stderr.push(output);
+            }]
         });
 
         obj.execute(function(error, code, cmd) {
@@ -772,22 +782,22 @@ mineos.mc = function(server_name, base_dir) {
         incr_file_list.shift();
         incr_file_list.pop();
 
-        var all_files = [];
+        let all_files: any[] = [];
 
-        for (var i in incr_file_list) {
+        for (let i in incr_file_list) {
           if (incr_file_list[i].toString().match(/sent \d+ bytes/))
             continue; //known pattern on freebsd: 'sent 79 bytes  received 19 bytes  196.00 bytes/sec'
           all_files = all_files.concat(incr_file_list[i].toString().split('\n'))
         }
-        
-        cb(null, all_files.filter(function(n){ return n.length }));
+
+        cb(null, all_files.filter(n => n.length));
       }
     ], callback)
   }
 
   self.start = function(callback) {
-    var args = null;
-    var params = { cwd: self.env.cwd };
+    let args = null;
+    const params = {cwd: self.env.cwd};
 
     async.waterfall([
       async.apply(self.verify, 'exists'),
@@ -823,7 +833,7 @@ mineos.mc = function(server_name, base_dir) {
       },
       async.apply(which, 'screen'),
       function(binary, cb) {
-        var proc = child_process.spawn(binary, args, params);
+        const proc = child_process.spawn(binary, args!, params);
         proc.once('close', cb);
       }
     ], function(err, result) {
@@ -834,9 +844,9 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.stop = function(callback) {
-    var test_interval_ms = 200;
-    var iterations = 0;
-    var MAX_ITERATIONS_TO_QUIT = 150;
+    const test_interval_ms = 200;
+    let iterations = 0;
+    const MAX_ITERATIONS_TO_QUIT = 150;
 
     async.series([
       async.apply(self.verify, 'exists'),
@@ -844,15 +854,15 @@ mineos.mc = function(server_name, base_dir) {
       async.apply(self.stuff, 'stop'),
       function(cb) {
         async.whilst(
-          function() { 
+          function() {
             if (iterations > MAX_ITERATIONS_TO_QUIT)
               return false;
             else
-              return (self.server_name in mineos.server_pids_up()) 
+              return (self.server_name in mineos.server_pids_up())
           },
-          function(cc) { 
+          function(cc) {
             iterations += 1;
-            setTimeout(cc, test_interval_ms) 
+            setTimeout(cc, test_interval_ms)
           },
           function(ignored_err) {
             if (self.server_name in mineos.server_pids_up())
@@ -860,7 +870,7 @@ mineos.mc = function(server_name, base_dir) {
             else
               cb(null); //no error, stop succeeded as expected
           }
-        );  
+        );
       }
     ], callback);
   }
@@ -880,22 +890,22 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.kill = function(callback) {
-    var pids = mineos.server_pids_up();
-    var test_interval_ms = 200;
-    var MAX_ITERATIONS_TO_QUIT = 150;
+    const pids = mineos.server_pids_up();
+    const test_interval_ms = 200;
+    const MAX_ITERATIONS_TO_QUIT = 150;
 
     if (!(self.server_name in pids)) {
       callback(true);
     } else {
       process.kill(pids[self.server_name].java, 'SIGKILL');
-      var iterations = 0;
+      let iterations = 0;
 
       async.doWhilst(
         function(cb) {
           iterations += 1;
           setTimeout(cb, test_interval_ms);
         },
-        function() { 
+        function() {
           if (iterations > MAX_ITERATIONS_TO_QUIT)
             return false;
           else
@@ -907,13 +917,13 @@ mineos.mc = function(server_name, base_dir) {
           else
             callback(null); //no error, stop succeeded: true
         }
-      ) 
+      )
     }
   }
 
   self.stuff = function(msg, callback) {
-    var params = { cwd: self.env.cwd };
-    var binary = which.sync('screen');
+    const params = {cwd: self.env.cwd};
+    const binary = which.sync('screen');
 
     async.waterfall([
       async.apply(self.verify, 'exists'),
@@ -926,18 +936,18 @@ mineos.mc = function(server_name, base_dir) {
         })
       },
       function(cb) {
-        cb(null, child_process.spawn(binary, 
-                                     ['-S', 'mc-{0}'.format(self.server_name),
-                                      '-p', '0', '-X', 'eval', 'stuff "{0}\012"'.format(msg)],
+        cb(null, child_process.spawn(binary,
+                                     ['-S', `mc-${self.server_name}`,
+                                      '-p', '0', '-X', 'eval', `stuff "${msg}"`],
                                      params));
       }
     ], callback);
   }
 
   self.saveall = function(seconds_delay, callback) {
-    var params = { cwd: self.env.cwd };
-    var binary = which.sync('screen');
-    var FALLBACK_DELAY_SECONDS = 5;
+    const params = {cwd: self.env.cwd};
+    const binary = which.sync('screen');
+    const FALLBACK_DELAY_SECONDS = 5;
 
     async.series([
       async.apply(self.verify, 'exists'),
@@ -950,36 +960,36 @@ mineos.mc = function(server_name, base_dir) {
         })
       },
       function(cb) {
-        cb(null, child_process.spawn(binary, 
-                                     ['-S', 'mc-{0}'.format(self.server_name),
-                                      '-p', '0', '-X', 'eval', 'stuff "save-all\012"'],
+        cb(null, child_process.spawn(binary,
+                                     ['-S', `mc-${self.server_name}`,
+                                      '-p', '0', '-X', 'eval', 'stuff "save-all"'],
                                      params));
       },
       function(cb) {
-        var actual_delay = (parseInt(seconds_delay) || FALLBACK_DELAY_SECONDS) * 1000;
+        const actual_delay = (parseInt(seconds_delay) || FALLBACK_DELAY_SECONDS) * 1000;
         setTimeout(cb, actual_delay);
       }
     ], callback);
   }
 
   self.saveall_latest_log = function(callback) {
-    var TIMEOUT_LENGTH = 10000;
-    var tail = require('tail').Tail;
+    const TIMEOUT_LENGTH = 10000;
+    const tail = require('tail').Tail;
 
-    try { 
+    try {
       var new_tail = new tail(path.join(self.env.cwd, 'logs/latest.log'));
     } catch (e) {
       callback(true);
       return;
     }
 
-    var timeout = setTimeout(function(){
+    const timeout = setTimeout(function () {
       new_tail.unwatch();
       callback(true);
     }, TIMEOUT_LENGTH);
 
     new_tail.on('line', function(data) {
-      var match = data.match(/INFO]: Saved the world/);
+      const match = data.match(/INFO]: Saved the world/);
       if (match) { //previously on, return true
         clearTimeout(timeout);
         new_tail.unwatch();
@@ -1001,12 +1011,12 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.archive = function(callback) {
-    var strftime = require('strftime');
-    var binary = which.sync('tar');
-    var filename = 'server-{0}_{1}.tgz'.format(self.server_name, strftime('%Y-%m-%d_%H:%M:%S'));
-    var args = ['czf', path.join(self.env.awd, filename), '.'];
+    const strftime = require('strftime');
+    const binary = which.sync('tar');
+    const filename = `server-${self.server_name}_${strftime('%Y-%m-%d_%H:%M:%S')}.tgz`;
+    const args = ['czf', path.join(self.env.awd, filename), '.'];
 
-    var params = { cwd: self.env.cwd };
+    const params = {cwd: self.env.cwd};
 
     async.series([
       function(cb) {
@@ -1017,7 +1027,7 @@ mineos.mc = function(server_name, base_dir) {
         })
       },
       function(cb) {
-        var proc = child_process.spawn(binary, args, params);
+        const proc = child_process.spawn(binary, args, params);
         proc.once('exit', function(code) {
           cb(code);
         })
@@ -1026,13 +1036,13 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.archive_with_commit = function(callback) {
-    var strftime = require('strftime');
-    var binary = which.sync('tar');
-    var filename = 'server-{0}_{1}.tgz'.format(self.server_name, strftime('%Y-%m-%d_%H:%M:%S'));
-    var args = ['czf', path.join(self.env.awd, filename), '.'];
+    const strftime = require('strftime');
+    const binary = which.sync('tar');
+    const filename = `server-${self.server_name}_${strftime('%Y-%m-%d_%H:%M:%S')}.tgz`;
+    const args = ['czf', path.join(self.env.awd, filename), '.'];
 
-    var params = { cwd: self.env.cwd };
-    var autosave = true;
+    const params = {cwd: self.env.cwd};
+    let autosave = true;
 
     async.series([
       function(cb) {
@@ -1051,7 +1061,7 @@ mineos.mc = function(server_name, base_dir) {
         })
       },
       function(cb) {
-        var proc = child_process.spawn(binary, args, params);
+        const proc = child_process.spawn(binary, args, params);
         proc.once('exit', function(code) {
           cb(null);
         })
@@ -1066,9 +1076,9 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.backup = function(callback) {
-    var binary = which.sync('rdiff-backup');
-    var args = ['--exclude', path.join(self.env.cwd, 'dynmap'), '{0}/'.format(self.env.cwd), self.env.bwd];
-    var params = { cwd: self.env.bwd } //bwd!
+    const binary = which.sync('rdiff-backup');
+    const args = ['--exclude', path.join(self.env.cwd, 'dynmap'), `${self.env.cwd}/`, self.env.bwd];
+    const params = {cwd: self.env.bwd}; //bwd!
 
     async.series([
       function(cb) {
@@ -1079,7 +1089,7 @@ mineos.mc = function(server_name, base_dir) {
         })
       },
       function(cb) {
-        var proc = child_process.spawn(binary, args, params);
+        const proc = child_process.spawn(binary, args, params);
         proc.once('exit', function(code) {
           cb(code);
         })
@@ -1088,35 +1098,35 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.restore = function(step, callback) {
-    var binary = which.sync('rdiff-backup');
-    var args = ['--restore-as-of', step, '--force', self.env.bwd, self.env.cwd];
-    var params = { cwd: self.env.bwd };
+    const binary = which.sync('rdiff-backup');
+    const args = ['--restore-as-of', step, '--force', self.env.bwd, self.env.cwd];
+    const params = {cwd: self.env.bwd};
 
-    var proc = child_process.spawn(binary, args, params);
+    const proc = child_process.spawn(binary, args, params);
     proc.once('exit', function(code) {
       callback(code);
     })
   }
 
   self.list_increments = function(callback) {
-    var binary = which.sync('rdiff-backup');
-    var args = ['--list-increment-sizes', self.env.bwd];
-    var params = { cwd: self.env.bwd };
-    var regex = /^(\w.*?) {3,}(.*?) {2,}([^ ]+ \w*)/
-    var increment_lines = [];
+    const binary = which.sync('rdiff-backup');
+    const args = ['--list-increment-sizes', self.env.bwd];
+    const params = {cwd: self.env.bwd};
+    const regex = /^(\w.*?) {3,}(.*?) {2,}([^ ]+ \w*)/;
+    const increment_lines: any[] = [];
 
-    var rdiff = child_process.spawn(binary, args, params);
+    const rdiff = child_process.spawn(binary, args, params);
 
     rdiff.stdout.on('data', function(data) {
-      var buffer = Buffer.from(data, 'ascii');
-      var lines = buffer.toString('ascii').split('\n');
-      var incrs = 0;
+      const buffer = Buffer.from(data, 'ascii');
+      const lines = buffer.toString('ascii').split('\n');
+      let incrs = 0;
 
-      for (var i=0; i < lines.length; i++) {
-        var match = lines[i].match(regex);
+      for (let i=0; i < lines.length; i++) {
+        const match = lines[i].match(regex);
         if (match) {
           increment_lines.push({
-            step: '{0}B'.format(incrs),
+            step: `${incrs}B`,
             time: match[1],
             size: match[2],
             cum: match[3]
@@ -1126,9 +1136,8 @@ mineos.mc = function(server_name, base_dir) {
       }
     });
 
-    rdiff.on('error', function(code) {
+    rdiff.on('error', () => {
       // branch if path does not exist
-      if (code != 0)
         callback(true, []);
     });
 
@@ -1141,17 +1150,17 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.list_archives = function(callback) {
-    var fs = require('fs');
-    var awd = self.env['awd'];
-    var all_info = [];
+    const fs = require('fs');
+    const awd = self.env['awd'];
+    const all_info: any[] = [];
 
     fs.readdir(awd, function(err, files) {
       if (!err) {
-        var fullpath = files.map(function(value, index) {
+        const fullpath = files.map(function (value, index) {
           return path.join(awd, value);
         });
 
-        var stat = fs.stat;
+        const stat = fs.stat;
         async.map(fullpath, stat, function(inner_err, results){
           results.forEach(function(value, index) {
             all_info.push({
@@ -1166,26 +1175,25 @@ mineos.mc = function(server_name, base_dir) {
           });
 
           callback(err || inner_err, all_info);
-        }); 
+        });
       } else {
         callback(err, all_info);
       }
-    }) 
+    })
   }
 
   self.prune = function(step, callback) {
-    var binary = which.sync('rdiff-backup');
-    var args = ['--force', '--remove-older-than', step, self.env.bwd];
-    var params = { cwd: self.env.bwd };
-    var proc = child_process.spawn(binary, args, params);
+    const binary = which.sync('rdiff-backup');
+    const args = ['--force', '--remove-older-than', step, self.env.bwd];
+    const params = {cwd: self.env.bwd};
+    const proc = child_process.spawn(binary, args, params);
 
     proc.on('error', function(code) {
       callback(code, null);
     })
 
-    proc.on('error', function(code) {
+    proc.on('error', function() {
       // branch if path does not exist
-      if (code != 0)
         callback(true);
     });
 
@@ -1198,8 +1206,8 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.delete_archive = function(filename, callback) {
-    var fs = require('fs-extra');
-    var archive_path = path.join(self.env['awd'], filename);
+    const fs = require('fs-extra');
+    const archive_path = path.join(self.env['awd'], filename);
 
     fs.remove(archive_path, function(err) {
       callback(err);
@@ -1207,9 +1215,11 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.property = function(property, callback) {
-    switch(property) {
+    let timer;
+      let DU_TIMEOUT;
+      switch(property) {
       case 'owner':
-        var userid = require('userid');
+        const userid = require('userid');
         fs.stat(self.env.cwd, function(err, stat_info) {
           if (err)
             callback(err, {});
@@ -1248,12 +1258,12 @@ mineos.mc = function(server_name, base_dir) {
             callback(err, stat_info['gid']);
         })
         break;
-      case 'exists': 
+      case 'exists':
         fs.stat(self.env.sp, function(err, stat_info) {
           callback(null, !!stat_info);
         });
         break;
-      case '!exists': 
+      case '!exists':
         fs.stat(self.env.sp, function(err, stat_info) {
           callback(null, !stat_info);
         });
@@ -1295,9 +1305,9 @@ mineos.mc = function(server_name, base_dir) {
       case 'memory':
         var pids = mineos.server_pids_up();
         if (self.server_name in pids) {
-          var procfs = require('procfs-stats');
+          const procfs = require('procfs-stats');
           procfs.PROC = PROC_PATH; //procfs will default to /proc--this is determined more accurately by mineos.js!
-          var ps = procfs(pids[self.server_name]['java']);
+          const ps = procfs(pids[self.server_name]['java']);
           ps.status(function(err, data){
             callback(err, data);
           })
@@ -1309,12 +1319,12 @@ mineos.mc = function(server_name, base_dir) {
         async.waterfall([
           async.apply(self.sc),
           function(sc_data, cb) {
-            var jarfile = (sc_data.java || {}).jarfile;
+            const jarfile = (sc_data.java || {}).jarfile;
 
             if (jarfile && jarfile.slice(-5).toLowerCase() == '.phar')
               cb(true, null);
             else {
-              var pids = mineos.server_pids_up();
+              const pids = mineos.server_pids_up();
               if (self.server_name in pids) {
                 self.ping(function(err, ping){
                   cb(null, ping);
@@ -1343,13 +1353,12 @@ mineos.mc = function(server_name, base_dir) {
         break;
       case 'du_awd':
         try {
-          var du = require('du');
-          var DU_TIMEOUT = 2000;
+            DU_TIMEOUT = 2000;
 
-          var timer = setTimeout(function() {
+          timer = setTimeout(function() {
             timer = null;
             return(callback(null, 0));
-          }, DU_TIMEOUT)
+          }, DU_TIMEOUT);
 
           du(self.env.awd, { disk: true }, function (err, size) {
             clearTimeout(timer);
@@ -1362,15 +1371,14 @@ mineos.mc = function(server_name, base_dir) {
         break;
       case 'du_bwd':
         try {
-          var du = require('du');
-          var DU_TIMEOUT = 3000;
+            DU_TIMEOUT = 3000;
 
-           var timer = setTimeout(function() {
-            timer = null;
-            return(callback(null, 0));
-          }, DU_TIMEOUT)
+            timer = setTimeout(function () {
+                timer = null;
+                return (callback(null, 0));
+            }, DU_TIMEOUT);
 
-          du(self.env.bwd, { disk: true }, function (err, size) {
+            du(self.env.bwd, { disk: true }, function (err, size) {
             clearTimeout(timer);
             if (timer)
               return(callback(err, size));
@@ -1381,13 +1389,12 @@ mineos.mc = function(server_name, base_dir) {
         break;
       case 'du_cwd':
         try {
-          var du = require('du');
-          var DU_TIMEOUT = 3000;
+          DU_TIMEOUT = 3000;
 
-          var timer = setTimeout(function() {
+          timer = setTimeout(function() {
             timer = null
             return(callback(null, 0));
-          }, DU_TIMEOUT)
+          }, DU_TIMEOUT);
 
           du(self.env.cwd, { disk: true }, function (err, size) {
             clearTimeout(timer);
@@ -1405,9 +1412,9 @@ mineos.mc = function(server_name, base_dir) {
         break;
       case 'onreboot_start':
         self.sc(function(err, dict) {
-          var val = (dict['onreboot'] || {}).start;
+          const val = (dict['onreboot'] || {}).start;
           try {
-            var boolean_ified = (val === true) || JSON.parse(val.toLowerCase());
+            const boolean_ified = (val === true) || JSON.parse(val.toLowerCase());
             callback(err, boolean_ified);
           } catch (e) {
             callback(err, false);
@@ -1421,7 +1428,7 @@ mineos.mc = function(server_name, base_dir) {
         break;
       case 'commit_interval':
         self.sc(function(err, dict) {
-          var interval = parseInt((dict['minecraft'] || {})['commit_interval']);
+          const interval = parseInt((dict['minecraft'] || {})['commit_interval']);
           if (interval > 0)
             callback(null, interval);
           else
@@ -1433,10 +1440,10 @@ mineos.mc = function(server_name, base_dir) {
           if (err) {
             callback(null, undefined);
           } else {
-            var REGEX_EULA_TRUE = /eula\s*=\s*true/i
-            var lines = data.toString().split('\n');
-            var matches = false;
-            for (var i in lines) {
+            const REGEX_EULA_TRUE = /eula\s*=\s*true/i;
+            const lines = data.toString().split('\n');
+            let matches = false;
+            for (let i in lines) {
               if (lines[i].match(REGEX_EULA_TRUE))
                 matches = true;
             }
@@ -1445,25 +1452,25 @@ mineos.mc = function(server_name, base_dir) {
         })
         break;
       case 'server_files':
-        var server_files = [];
+        const server_files: string[] = [];
 
         async.waterfall([
           async.apply(fs.readdir, self.env.cwd),
           function(sf, cb) {
-            server_files.push.apply(server_files, sf.filter(function(file) { 
-              return file.substr(-4).toLowerCase() == '.jar'; 
+            server_files.push.apply(server_files, sf.filter(function(file) {
+              return file.substr(-4).toLowerCase() == '.jar';
             }))
-            server_files.push.apply(server_files, sf.filter(function(file) { 
-              return file.substr(-5).toLowerCase() == '.phar'; 
+            server_files.push.apply(server_files, sf.filter(function(file) {
+              return file.substr(-5).toLowerCase() == '.phar';
             }))
-            server_files.push.apply(server_files, sf.filter(function(file) { 
-              return file == 'Cuberite'; 
+            server_files.push.apply(server_files, sf.filter(function(file) {
+              return file == 'Cuberite';
             }))
             cb();
           },
           async.apply(self.sc),
           function(sc_data, cb) {
-            var active_profile_dir = '';
+            let active_profile_dir = '';
             try {
               active_profile_dir = path.join(self.env.pwd, sc_data.minecraft.profile);
             } catch (e) {
@@ -1471,15 +1478,13 @@ mineos.mc = function(server_name, base_dir) {
               return;
             }
 
-            fs.readdir(active_profile_dir, function(err, files) {
+            fs.readdir(active_profile_dir, (err, files) => {
               if (err) {
                 cb();
               } else {
-                server_files.push.apply(server_files, files.filter(function(file) { 
-                  return ((file.substr(-4).toLowerCase() == '.jar' && server_files.indexOf(file) < 0)
-                       || (file.substr(-5).toLowerCase() == '.phar' && server_files.indexOf(file) < 0)
-                       || (file == 'Cuberite' && server_files.indexOf(file) < 0)); 
-                }))
+                server_files.push.apply(server_files, files.filter((file: string) => ((file.substr(-4).toLowerCase() == '.jar' && server_files.indexOf(file) < 0)
+                    || (file.substr(-5).toLowerCase() == '.phar' && server_files.indexOf(file) < 0)
+                    || (file == 'Cuberite' && server_files.indexOf(file) < 0))))
                 cb();
               }
             })
@@ -1489,11 +1494,11 @@ mineos.mc = function(server_name, base_dir) {
         })
         break;
       case 'autosave':
-        var TIMEOUT_LENGTH = 2000;
-        var tail = require('tail').Tail;
-        var new_tail = new tail(path.join(self.env.cwd, 'logs/latest.log'));
+        const TIMEOUT_LENGTH = 2000;
+        const tail = require('tail').Tail;
+        const new_tail = new tail(path.join(self.env.cwd, 'logs/latest.log'));
 
-        var timeout = setTimeout(function(){
+        const timeout = setTimeout(function () {
           new_tail.unwatch();
           return callback(null, true); //default to true for unsupported server functionality fallback
         }, TIMEOUT_LENGTH);
@@ -1541,21 +1546,22 @@ mineos.mc = function(server_name, base_dir) {
   self.ping = function(callback) {
     function swapBytes(buffer) {
       //http://stackoverflow.com/a/7460958/1191579
-      var l = buffer.length;
+      const l = buffer.length;
       if (l & 0x01) {
         throw new Error('Buffer length must be even');
       }
-      for (var i = 0; i < l; i += 2) {
-        var a = buffer[i];
+      for (let i = 0; i < l; i += 2) {
+        const a = buffer[i];
         buffer[i] = buffer[i+1];
         buffer[i+1] = a;
       }
-      return buffer; 
+      return buffer;
     }
 
     function splitBuffer(buf, delimiter) {
       //http://stackoverflow.com/a/8920913/1191579
-      var arr = [], p = 0;
+      const arr: any[] = [];
+      let p = 0;
 
       for (var i = 0, l = buf.length; i < l; i++) {
         if (buf[i] !== delimiter) continue;
@@ -1576,35 +1582,35 @@ mineos.mc = function(server_name, base_dir) {
     }
 
     function buffer_to_ascii(buf) {
-      var retval = '';
-      for (var i=0; i < buf.length; i++)
+      let retval = '';
+      for (let i=0; i < buf.length; i++)
         retval += (buf[i] == 0x0000 ? '' : String.fromCharCode(buf[i]));
       return retval;
     }
 
     function send_query_packet(port) {
-      var net = require('net');
-      var socket = net.connect({port: port});
-      var query = 'modern';
-      var QUERIES = {
+      const net = require('net');
+      const socket = net.connect({port: port});
+      const query = 'modern';
+      const QUERIES = {
         'modern': '\xfe\x01',
         'legacy': '\xfe' +
-                  '\x01' +
-                  '\xfa' +
-                  '\x00\x06' +
-                  '\x00\x6d\x00\x69\x00\x6e\x00\x65\x00\x6f\x00\x73' +
-                  '\x00\x19' +
-                  '\x49' +
-                  '\x00\x09' +
-                  '\x00\x6c\x00\x6f\x00\x63\x00\x61\x00\x6c\x00\x68' +
-                  '\x00\x6f\x00\x73\x00\x74' +
-                  '\x00\x00\x63\xdd'
-        }
-        
+            '\x01' +
+            '\xfa' +
+            '\x00\x06' +
+            '\x00\x6d\x00\x69\x00\x6e\x00\x65\x00\x6f\x00\x73' +
+            '\x00\x19' +
+            '\x49' +
+            '\x00\x09' +
+            '\x00\x6c\x00\x6f\x00\x63\x00\x61\x00\x6c\x00\x68' +
+            '\x00\x6f\x00\x73\x00\x74' +
+            '\x00\x00\x63\xdd'
+      };
+
       socket.setTimeout(2500);
 
       socket.on('connect', function() {
-        var buf = Buffer.alloc(2);
+        const buf = Buffer.alloc(2);
 
         buf.write(QUERIES[query], 0, QUERIES[query].length, 'binary');
         socket.write(buf);
@@ -1613,13 +1619,13 @@ mineos.mc = function(server_name, base_dir) {
       socket.on('data', function(data) {
         socket.end();
 
-        var legacy_split = splitBuffer(data, 0x00a7);
-        var modern_split = modern_split = swapBytes(data.slice(3)).toString('ucs2').split('\u0000').splice(1);
+        const legacy_split = splitBuffer(data, 0x00a7);
+        const modern_split = swapBytes(data.slice(3)).toString('ucs2').split('\u0000').splice(1);
 
         if (modern_split.length == 5) {
           // modern ping to modern server
           callback(null, {
-            protocol: parseInt(parseInt(modern_split[0])),
+            protocol: parseInt(modern_split[0]),
             server_version: modern_split[1],
             motd: modern_split[2],
             players_online: parseInt(modern_split[3]),
@@ -1636,7 +1642,7 @@ mineos.mc = function(server_name, base_dir) {
               players_max: parseInt(buffer_to_ascii(legacy_split[2]))
             });
           }
-        } 
+        }
       });
 
       socket.on('error', function(err) {
@@ -1647,19 +1653,19 @@ mineos.mc = function(server_name, base_dir) {
 
     self.sp(function(err, dict) {
       send_query_packet(dict['server-port']);
-    })  
+    })
   }
 
   self.query = function(callback) {
-    var mcquery = require('mcquery');
+    const mcquery = require('mcquery');
 
-    var q = null;
-    var retval = {};
+    let q: any = null;
+    let retval = {};
 
     async.waterfall([
       async.apply(self.sc),
       function(dict, cb) {
-        var jarfile = (dict.java || {}).jarfile;
+        const jarfile = (dict.java || {}).jarfile;
         if (jarfile)
           cb(jarfile.slice(-5).toLowerCase() == '.phar');
         else
@@ -1689,16 +1695,16 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.previous_version = function(filepath, restore_as_of, callback) {
-    var tmp = require('tmp');
-    var binary = which.sync('rdiff-backup');
-    var abs_filepath = path.join(self.env.bwd, filepath);
+    const tmp = require('tmp');
+    const binary = which.sync('rdiff-backup');
+    const abs_filepath = path.join(self.env.bwd, filepath);
 
     tmp.file(function (err, new_file_path, fd, cleanupCallback) {
       if (err) throw err;
 
-      var args = ['--force', '--restore-as-of', restore_as_of, abs_filepath, new_file_path];
-      var params = { cwd: self.env.bwd };
-      var proc = child_process.spawn(binary, args, params);
+      const args = ['--force', '--restore-as-of', restore_as_of, abs_filepath, new_file_path];
+      const params = {cwd: self.env.bwd};
+      const proc = child_process.spawn(binary, args, params);
 
       proc.on('error', function(code) {
         callback(code, null);
@@ -1718,19 +1724,19 @@ mineos.mc = function(server_name, base_dir) {
 
   self.previous_property = function(restore_as_of, callback) {
     self.previous_version('server.properties', restore_as_of, function(err, file_contents) {
-      
+
       if (err) {
         callback(err, null)
       } else {
-        var ini = require('ini');
+        const ini = require('ini');
         callback(err, ini.decode(file_contents));
       }
     });
   }
 
   self.chown = function(uid, gid, callback) {
-    var auth = require('./auth');
-    var chownr = require('chownr');
+    const auth = require('./auth');
+    const chownr = require('chownr');
 
     async.series([
       async.apply(auth.verify_ids, uid, gid),
@@ -1744,7 +1750,7 @@ mineos.mc = function(server_name, base_dir) {
   self.sync_chown = function(callback) {
     // chowns awd,bwd,cwd to the owner of cwd.
     // duplicates functionality of chown because it does not assume sp existence
-    var chownr = require('chownr');
+    const chownr = require('chownr');
 
     async.series([
       async.apply(fs.stat, self.env.cwd),
@@ -1763,8 +1769,8 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.run_installer = function(callback) {
-    var args = ['FTBInstall.sh'];
-    var params = { cwd: self.env.cwd };
+    const args = ['FTBInstall.sh'];
+    const params = {cwd: self.env.cwd};
 
     async.waterfall([
       async.apply(self.verify, 'exists'),
@@ -1777,15 +1783,15 @@ mineos.mc = function(server_name, base_dir) {
       },
       async.apply(which, 'sh'),
       function(binary, cb) {
-        var proc = child_process.spawn(binary, args, params);
+        const proc = child_process.spawn(binary, args, params);
         proc.once('close', cb);
       }
     ], callback)
   }
 
   self.renice = function(niceness, callback) {
-    var binary = null;
-    var params = { cwd: self.env.cwd };
+    let binary: any = null;
+    const params = {cwd: self.env.cwd};
 
     async.waterfall([
       async.apply(self.verify, 'exists'),
@@ -1804,7 +1810,7 @@ mineos.mc = function(server_name, base_dir) {
       async.apply(self.property, 'java_pid')
     ], function(err, pid) {
       if (!err) {
-        var proc = child_process.spawn(binary, ["-n", niceness, "-p", pid], params);
+        const proc = child_process.spawn(binary, ["-n", niceness, "-p", pid], params);
         proc.once('close', callback);
       } else {
         callback(true);
@@ -1815,10 +1821,4 @@ mineos.mc = function(server_name, base_dir) {
   return self;
 }
 
-String.prototype.format = function() {
-  var s = this;
-  for(var i = 0, iL = arguments.length; i<iL; i++) {
-    s = s.replace(new RegExp('\\{'+i+'\\}', 'gm'), arguments[i]);
-  }
-  return s;
-};
+export default mineos;
