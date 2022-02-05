@@ -6,13 +6,16 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { FontAwesomeModule } from "@fortawesome/angular-fontawesome";
 import { ChartsModule } from 'ng2-charts';
 import { MomentModule } from 'ngx-moment';
+import { SocketIoModule } from "ngx-socket-io";
 import { AppRoutingModule } from './app-routing.module';
 
 // App Components
 import { AppComponent } from './app.component';
 import { ActiveServerListComponent } from './components/active-server-list/active-server-list.component';
 import { ArchiveComponent } from './components/archive/archive.component';
+import { AuthenticatedPageComponent } from './components/authenticated-page/authenticated-page.component';
 import { CalendarComponent } from './components/calendar/calendar.component';
+import { CardComponent } from './components/card/card.component';
 import { DashboardComponent } from './components/dashboard/dashboard.component';
 import { EnvironmentComponent } from './components/environment/environment.component';
 import { HeaderComponent } from './components/header/header.component';
@@ -30,8 +33,6 @@ import { SchedulingComponent } from './components/scheduling/scheduling.componen
 import { ServerDetailsComponent } from './components/server-details/server-details.component';
 import { StatusComponent } from './components/status/status.component';
 import { BytesToMegabytesPipe } from './pipes/bytes-to-megabytes.pipe';
-import { CardComponent } from './components/card/card.component';
-import { AuthenticatedPageComponent } from './components/authenticated-page/authenticated-page.component';
 
 @NgModule({
   declarations: [
@@ -67,7 +68,8 @@ import { AuthenticatedPageComponent } from './components/authenticated-page/auth
     HttpClientModule,
     MomentModule,
     ChartsModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    SocketIoModule.forRoot({url: "", options: {transports: ["websocket"]}})
   ],
   providers: [],
   bootstrap: [AppComponent],

@@ -3,7 +3,7 @@ var path = require('path');
 var fs = require('fs-extra');
 var profile = require('./template');
 
-exports.profile = {
+export const FTB_Thirdparty_Legacy = {
   name: 'Feed the Beast Third-Party Server Packs - old',
   request_args: {
     url: 'http://dist.creeper.host/FTB2/static/thirdparty.xml',

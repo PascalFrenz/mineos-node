@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-const getopt = require('node-getopt');
-const mineos = require('./mineos');
+import { MINE_OS } from "./mineos";
+import getopt from "node-getopt";
 
 const opt = getopt.create([
   ['s', 'server_name=SERVER_NAME', 'server name'],
@@ -118,7 +118,7 @@ if ('version' in opt.options) {
     process.exit(code);
   })
 } else {
-  instance = new mineos.mc(opt.options.server_name, base_dir);
+  instance = new MINE_OS.mc(opt.options.server_name, base_dir);
   if (opt.argv[0] in instance) { //first provided param matches a function name) {
     handle_server(opt, function(code, retval) {
       for (let idx in retval)

@@ -1,29 +1,40 @@
 #!/usr/bin/env node
 
-import mineos from "./mineos";
+import { MINE_OS } from "./mineos";
 import server from "./server";
+import auth from "./auth";
 import async from "async";
 import fs from "fs-extra";
 import express from "express";
 import compression from "compression";
 import passport from "passport";
-import LocalStrategy from "passport-local";
+import { Strategy } from "passport-local";
 import expressSession from "express-session";
 import bodyParser from "body-parser";
 import methodOverride from "method-override";
-import cookieParser from "cookie-parser";
-import {Server} from "http";
-import {randomBytes} from "crypto";
-import passportSocketIO from "passport.socketio";
-
+import { createServer } from "http";
+import { randomBytes } from "crypto";
+import { Command, OptionValues } from "commander";
 import Q from "q";
+import { Server } from 'socket.io';
 
-import auth from "./auth";
+import ini from "ini";
+import { User } from "./mineos-app/src/app/models/user";
+
+type WebUIArgs = {
+  configFile: string;
+} & OptionValues;
 
 const sessionStore = new expressSession.MemoryStore();
 const app = express();
-const http = new Server(app);
+let http = createServer(app);
+const io = new Server(http);
 
+const program = new Command();
+program.option("-c, --config-file <path>");
+program.parseOptions(process.argv)
+
+const program_options = program.opts<WebUIArgs>();
 const response_options = {root: __dirname};
 
 // Authorization
@@ -48,73 +59,76 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser((obj, done) => {
   //console.log("deserializing " + obj);
-  done(null, obj);
+  done(null, obj as User);
 });
 
 // Use the LocalStrategy within Passport to login users.
-passport.use('local-signin', new LocalStrategy(
-  {passReqToCallback : true}, //allows us to pass back the request to the callback
-    (req, username, password, done) => {
+passport.use('local-signin', new Strategy(
+  {passReqToCallback: true}, //allows us to pass back the request to the callback
+  (req, username, password, done) => {
     localAuth(username, password)
-    .then(user => {
-      if (user) {
-        console.log('Successful login attempt for username:', username);
-        const logstring = new Date().toString() + ' - success from: ' + req.connection.remoteAddress + ' user: ' + username + '\n';
+      .then(user => {
+        if (user) {
+          console.log('Successful login attempt for username:', username);
+          const logstring = new Date().toString() + ' - success from: ' + req.connection.remoteAddress + ' user: ' + username + '\n';
+          fs.appendFileSync('/var/log/mineos.auth.log', logstring);
+          done(null, user);
+        }
+      })
+      .fail(err => {
+        console.log('Unsuccessful login attempt for username:', username);
+        const logstring = new Date().toString() + ' - failure from: ' + req.connection.remoteAddress + ' user: ' + username + '\n';
         fs.appendFileSync('/var/log/mineos.auth.log', logstring);
-        done(null, user);
-      }
-    })
-    .fail(err => {
-      console.log('Unsuccessful login attempt for username:', username);
-      const logstring = new Date().toString() + ' - failure from: ' + req.connection.remoteAddress + ' user: ' + username + '\n';
-      fs.appendFileSync('/var/log/mineos.auth.log', logstring);
-      done(null);
-    });
+        done(null);
+      });
   }
 ));
 
 // clean up sessions that go stale over time
 function session_cleanup() {
-  //http://stackoverflow.com/a/10761522/1191579
-  sessionStore.all((err, sessions) => {
-    for (let i = 0; i < sessions.length; i++) {
-      sessionStore.get(sessions[i], () => {});
-    }
-  });
+  console.log("sessions cleaned up!")
+  sessionStore.clear()
 }
 
 // Simple route middleware to ensure user is authenticated.
 function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) { return next(); }
+  if (req.isAuthenticated()) {
+    return next();
+  }
   req.session.error = 'Please sign in!';
   res.redirect('/admin/login.html');
 }
 
 const token = randomBytes(48).toString('hex');
-
-app.use(bodyParser.urlencoded({extended: false}));
-app.use(methodOverride());
-app.use(compression());
-app.use(expressSession({ 
+const sessionMiddleware = expressSession({
   secret: token,
-  key: 'express.sid',
   store: sessionStore,
   resave: false,
   saveUninitialized: false
-}));
+});
+app.use(bodyParser.urlencoded({extended: false}));
+app.use(methodOverride());
+app.use(compression());
+app.use(sessionMiddleware);
 app.use(passport.initialize());
 app.use(passport.session());
 
-const io = require('socket.io')(http);
-io.use(passportSocketIO.authorize({
-  cookieParser: cookieParser,       // the same middleware you registrer in express
-  key:          'express.sid',       // the name of the cookie where express/connect stores its session_id
-  secret:       token,    // the session_secret to parse the cookie
-  store:        sessionStore        // we NEED to use a sessionstore. no memorystore please
-}));
+const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
+
+io.use(wrap(sessionMiddleware));
+io.use(wrap(passport.initialize()));
+io.use(wrap(passport.session()));
+
+io.use((socket, next) => {
+  // @ts-ignore
+  if (socket.request.user) {
+    next();
+  } else {
+    next(new Error('unauthorized'))
+  }
+});
 
 function read_ini(filepath) {
-  const ini = require('ini');
   try {
     const data = fs.readFileSync(filepath);
     return ini.parse(data.toString());
@@ -123,7 +137,13 @@ function read_ini(filepath) {
   }
 }
 
-mineos.dependencies((err, binaries) => {
+MINE_OS.dependencies((err, binaries) => {
+  process.on('unhandledRejection', (reason, promise) => {
+    console.log(reason)
+  })
+  process.on('uncaughtException', (reason) => {
+    console.log(reason)
+  })
   let USE_NEW_UI;
   if (err) {
     console.error('MineOS is missing dependencies:', err);
@@ -131,7 +151,11 @@ mineos.dependencies((err, binaries) => {
     process.exit(1);
   }
 
-  const mineos_config = read_ini('/etc/mineos.conf') || read_ini('/usr/local/etc/mineos.conf') || {};
+  const process_opt_config = program_options.configFile;
+  if (process_opt_config) {
+    console.log(`Config file given on CMD, using ${process_opt_config} as config file`)
+  }
+  const mineos_config = read_ini(process_opt_config) || read_ini('/etc/mineos.conf') || read_ini('/usr/local/etc/mineos.conf') || {};
   let base_directory = '/var/games/minecraft';
 
   if ('base_directory' in mineos_config) {
@@ -144,54 +168,57 @@ mineos.dependencies((err, binaries) => {
 
     } catch (e: any) {
       console.error(e.message, 'Aborting startup.');
-      process.exit(2); 
+      process.exit(2);
     }
 
     console.info('base_directory found in mineos.conf, using:', base_directory);
   } else {
     console.error('base_directory not specified--missing mineos.conf?');
     console.error('Aborting startup.');
-    process.exit(4); 
+    process.exit(4);
   }
 
   const be = new server.backend(base_directory, io, mineos_config);
 
   app.get('/', (req, res) => {
-    if(USE_NEW_UI){
+    if (USE_NEW_UI) {
       res.redirect('/ui');
-    }else{
+    } else {
       res.redirect('/admin/index.html');
     }
   });
-  
+
   app.get('/admin/index.html', ensureAuthenticated, (req, res) => {
-      res.sendFile('/html/index.html', response_options);
+    res.sendFile('/html/index.html', response_options);
   });
 
   app.get('/login', (req, res) => {
-      res.sendFile('/html/login.html');
+    res.sendFile('/html/login.html');
   });
 
   app.post('/auth', passport.authenticate('local-signin', {
-    successRedirect: '/admin/index.html',
-    failureRedirect: '/admin/login.html'
+      successRedirect: '/admin/index.html',
+      failureRedirect: '/admin/login.html'
     })
   );
 
   app.get('/api/auth/is-authenticated', (req, res) => {
-    let result = { authenticated : false };
-    if(req.isAuthenticated()){
+    console.log("is-authenticated", "check auth state..")
+    let result = {authenticated: false};
+    if (req.isAuthenticated()) {
       result.authenticated = true;
     }
+    console.log("is-authenticated?: ", result.authenticated)
     res.json(result);
     res.end();
   });
-  
+
   // Page redirect/routing managed by the ui AuthGaurd class
-  app.post('/api/auth', 
+  app.post('/api/auth',
     passport.authenticate('local-signin'),
-      (req, res) => {
-      res.json({ username: req.user.username });
+    (req, res) => {
+      // @ts-ignore
+      res.json({username: req.user?.username});
       res.end();
     }
   );
@@ -203,7 +230,8 @@ mineos.dependencies((err, binaries) => {
 
   app.all('/api/:server_name/:command', ensureAuthenticated, (req, res) => {
     const target_server = req.params.server_name;
-    const user = req.user.username;
+    // @ts-ignore
+    const user = req.user?.username;
     const instance = be.servers[target_server];
 
     const args = req.body;
@@ -220,13 +248,14 @@ mineos.dependencies((err, binaries) => {
   app.post('/admin/command', ensureAuthenticated, (req, res) => {
     const target_server = req.body.server_name;
     const instance = be.servers[target_server];
-    const user = req.user.username;
+    // @ts-ignore
+    const user = req.user?.username;
 
     if (instance)
       instance.direct_dispatch(user, req.body);
     else
       console.error('Ignoring request by "', user, '"; no server found named [', target_server, ']');
-    
+
     res.end();
   });
 
@@ -267,11 +296,10 @@ mineos.dependencies((err, binaries) => {
 
   if ('socket_port' in mineos_config)
     SOCKET_PORT = mineos_config['socket_port'];
+  else if (USE_HTTPS)
+    SOCKET_PORT = 8443;
   else
-    if (USE_HTTPS)
-      SOCKET_PORT = 8443;
-    else
-      SOCKET_PORT = 8080;
+    SOCKET_PORT = 8080;
 
   if (USE_HTTPS) {
     let keyfile = mineos_config['ssl_private_key'] || '/etc/ssl/certs/mineos.key';
@@ -282,7 +310,7 @@ mineos.dependencies((err, binaries) => {
     }, (err, ssl) => {
       if (err) {
         console.error('Could not locate required SSL files ' + keyfile +
-	              ' and/or ' + certfile + ', aborting server start.');
+          ' and/or ' + certfile + ', aborting server start.');
         process.exit(3);
       } else {
         const https = require('https');
@@ -292,7 +320,8 @@ mineos.dependencies((err, binaries) => {
             const cert_chain_data = fs.readFileSync(mineos_config['ssl_cert_chain']);
             if (cert_chain_data.length)
               ssl['ca'] = cert_chain_data;
-          } catch (e) {}
+          } catch (e) {
+          }
         }
 
         const https_server = https.createServer(ssl, app).listen(SOCKET_PORT, SOCKET_HOST, () => {
@@ -305,6 +334,9 @@ mineos.dependencies((err, binaries) => {
     console.warn('mineos.conf set to host insecurely: starting HTTP server.');
     http.listen(SOCKET_PORT, SOCKET_HOST, () => {
       console.log('MineOS webui listening on HTTP://' + SOCKET_HOST + ':' + SOCKET_PORT);
+    });
+    http.on('error', (e) => {
+      console.log("http encountered error: ", e);
     });
   }
 

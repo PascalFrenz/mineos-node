@@ -114,7 +114,7 @@ In this case, identify your version of node (`node -v`); either remove and insta
 
 ```
 # which node
-/usr/bin/ts-node
+/usr/local/bin/ts-node
 # node -v
 v8.17.0
 ```
@@ -124,6 +124,6 @@ In the event you have multiple versions of node present, you will want to update
 ```
 # cat /etc/supervisor/conf.d/mineos.conf 
 [program:mineos]
-command=/usr/bin/ts-node webui.ts
+command=/usr/local/bin/ts-node webui.ts
 ...
 ```

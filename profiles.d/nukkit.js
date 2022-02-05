@@ -3,7 +3,7 @@ var path = require('path');
 var fs = require('fs-extra');
 var profile = require('./template');
 
-exports.profile = {
+export const Nukkit = {
   name: 'Nukkit',
   handler: function (profile_dir, callback) {
     var p = [];

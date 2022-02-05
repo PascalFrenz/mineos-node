@@ -24,4 +24,4 @@ expect daemon
 chdir /usr/games/minecraft
 
 # Start the process
-exec sudo -u root /usr/bin/ts-node service.ts start
+exec sudo -u root /usr/local/bin/ts-node service.ts start

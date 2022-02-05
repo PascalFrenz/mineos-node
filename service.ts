@@ -6,7 +6,7 @@ const daemon = setup({
     pidfile: "/var/run/mineos.pid"
 });
 
-if (process.getuid() != 0) {
+if (process.getuid() !== 0) {
     console.log("Expected to run as root");
     process.exit(1);
 }

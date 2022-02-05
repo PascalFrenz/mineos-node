@@ -3,7 +3,7 @@ var path = require('path');
 var fs = require('fs-extra');
 var profile = require('./template');
 
-exports.profile = {
+export const Paper = {
   name: 'Paper',
   request_args: {
     url: 'https://papermc.io/api/v1/paper',

@@ -11,7 +11,7 @@ start() {
         start-stop-daemon --start \
                 --chdir /usr/games/minecraft \
                 --pidfile /var/run/mineos.pid \
-                --exec "/usr/bin/ts-node" \
+                --exec "/usr/local/bin/ts-node" \
                 -- service.ts start
 }
 
@@ -19,6 +19,6 @@ stop() {
         start-stop-daemon --stop \
                 --chdir /usr/games/minecraft \
                 --pidfile /var/run/mineos.pid \
-                --exec "/usr/bin/ts-node" \
+                --exec "/usr/local/bin/ts-node" \
                 -- service.ts stop
 }

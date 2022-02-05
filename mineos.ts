@@ -1,33 +1,23 @@
 import fs from "fs-extra";
 import path from "path";
-import async from "async";
+import async, { Dictionary } from "async";
 import child_process from "child_process";
 import which from "which";
 import du from "du";
+import { constants, Stats } from "fs";
 
-let mineos: any = {};
+import net from "net";
 
-mineos.DIRS = {
-  'servers': 'servers',
-  'backup': 'backup',
-  'archive': 'archive',
-  'profiles': 'profiles',
-  'import': 'import'
-}
-
-mineos.SP_DEFAULTS = {
-  'server-port': 25565,
-  'max-players': 20,
-  'level-seed': '',
-  'gamemode': 0,
-  'difficulty': 1,
-  'level-type': 'DEFAULT',
-  'level-name': 'world',
-  'max-build-height': 256,
-  'generate-structures': 'true',
-  'generator-settings': '',
-  'server-ip': '0.0.0.0',
-  'enable-query': 'false'
+interface MineOS {
+  mc: (server_name, base_dir) => void;
+  dependencies: (callback) => void;
+  extract_server_name: (base_dir: string, server_path: string) => string | undefined;
+  valid_server_name: (server_name) => boolean;
+  server_pids_up: () => {};
+  DIRS: Record<string, string>;
+  SP_DEFAULTS: Record<string, string | number>;
+  server_list: (base_dir: any) => string[];
+  server_list_up: () => string[];
 }
 
 const proc_paths = [
@@ -39,23 +29,63 @@ const proc_paths = [
 
 let PROC_PATH = '';
 
-for (var proc in proc_paths) {
+for (let proc in proc_paths) {
   try {
     fs.statSync(path.join(proc_paths[proc], 'uptime'));
     PROC_PATH = proc_paths[proc];
     break;
-  } catch (e) {}
+  } catch (e) {
+    console.log("Did not find process at " + proc_paths[proc] + ", trying more..");
+  }
 }
 
-mineos.server_list = function(base_dir) {
-  return fs.readdirSync(path.join(base_dir, mineos.DIRS['servers']));
-}
+export const MINE_OS: MineOS = {
+  DIRS: {
+    'servers': 'servers',
+    'backup': 'backup',
+    'archive': 'archive',
+    'profiles': 'profiles',
+    'import': 'import'
+  },
+  SP_DEFAULTS: {
+    'server-port': 25565,
+    'max-players': 20,
+    'level-seed': '',
+    'gamemode': 0,
+    'difficulty': 1,
+    'level-type': 'DEFAULT',
+    'level-name': 'world',
+    'max-build-height': 256,
+    'generate-structures': 'true',
+    'generator-settings': '',
+    'server-ip': '0.0.0.0',
+    'enable-query': 'false'
+  },
+  server_list: base_dir => fs.readdirSync(path.join(base_dir, MINE_OS.DIRS['servers'])),
+  server_list_up: () => Object.keys(MINE_OS.server_pids_up()),
+  server_pids_up: server_pids_up,
+  valid_server_name: server_name => /^(?!\.)[a-zA-Z0-9_.]+$/.test(server_name),
+  extract_server_name: (base_dir, server_path) => {
+    const re = new RegExp(`${path.join(base_dir, MINE_OS.DIRS['servers'])}/([a-zA-Z0-9_.]+)`);
+    try {
+      return re.exec(server_path)?.[1];
+    } catch(e) {
+      throw new Error('no server name in path');
+    }
+  },
+  dependencies: callback => {
+    async.parallel({
+      'screen': async.apply(which, 'screen'),
+      'tar': async.apply(which, 'tar'),
+      'rsync': async.apply(which, 'rsync'),
+      'java': async.apply(which, 'java'),
+      'rdiff-backup': async.apply(which, 'rdiff-backup')
+    }, callback);
+  },
+  mc: (server_name, base_dir) => mc(server_name, base_dir)
+};
 
-mineos.server_list_up = function() {
-  return Object.keys(mineos.server_pids_up());
-}
-
-mineos.server_pids_up = function() {
+function server_pids_up() {
   let cmdline, environ, match;
   const pids = fs.readdirSync(PROC_PATH).filter(function (e) {
     if (/^([0-9]+)$/.test(e)) {
@@ -71,8 +101,8 @@ mineos.server_pids_up = function() {
   for (let i=0; i < pids.length; i++) {
     try {
       cmdline = fs.readFileSync(path.join(PROC_PATH, pids[i].toString(), 'cmdline'))
-                              .toString('ascii')
-                              .replace(/\u0000/g, ' ');
+        .toString('ascii')
+        .replace(/\u0000/g, ' ');
     } catch (e) {
       continue;
     }
@@ -87,8 +117,8 @@ mineos.server_pids_up = function() {
     } else {
       try {
         environ = fs.readFileSync(path.join(PROC_PATH, pids[i].toString(), 'environ'))
-                                .toString('ascii')
-                                .replace(/\u0000/g, ' ');
+          .toString('ascii')
+          .replace(/\u0000/g, ' ');
       } catch (e) {
         continue;
       }
@@ -106,45 +136,21 @@ mineos.server_pids_up = function() {
   return servers_found;
 }
 
-mineos.valid_server_name = function(server_name) {
-  const regex_valid_server_name = /^(?!\.)[a-zA-Z0-9_.]+$/;
-  return regex_valid_server_name.test(server_name);
-}
-
-mineos.extract_server_name = function(base_dir, server_path) {
-  const re = new RegExp(`${path.join(base_dir, mineos.DIRS['servers'])}/([a-zA-Z0-9_.]+)`);
-  try {
-    return re.exec(server_path)?.[1];
-  } catch(e) {
-    throw new Error('no server name in path');
-  }
-}
-
-mineos.dependencies = async.memoize(function(callback) {
-  async.parallel({
-    'screen': async.apply(which, 'screen'),
-    'tar': async.apply(which, 'tar'),
-    'rsync': async.apply(which, 'rsync'),
-    'java': async.apply(which, 'java'),
-    'rdiff-backup': async.apply(which, 'rdiff-backup')
-  }, callback);
-})
-
-mineos.mc = function(server_name, base_dir) {
-  const self = this;
+function mc(this: any, server_name, base_dir) {
+  const self: any = this;
   self.server_name = server_name;
 
   process.umask(0o002);
 
   self.env = {
     base_dir: base_dir,
-    cwd: path.join(base_dir, mineos.DIRS['servers'], server_name),
-    bwd: path.join(base_dir, mineos.DIRS['backup'], server_name),
-    awd: path.join(base_dir, mineos.DIRS['archive'], server_name),
-    pwd: path.join(base_dir, mineos.DIRS['profiles']),
-    sp: path.join(base_dir, mineos.DIRS['servers'], server_name, 'server.properties'),
-    sc: path.join(base_dir, mineos.DIRS['servers'], server_name, 'server.config'),
-    cc: path.join(base_dir, mineos.DIRS['servers'], server_name, 'cron.config')
+    cwd: path.join(base_dir, MINE_OS.DIRS['servers'], server_name),
+    bwd: path.join(base_dir, MINE_OS.DIRS['backup'], server_name),
+    awd: path.join(base_dir, MINE_OS.DIRS['archive'], server_name),
+    pwd: path.join(base_dir, MINE_OS.DIRS['profiles']),
+    sp: path.join(base_dir, MINE_OS.DIRS['servers'], server_name, 'server.properties'),
+    sc: path.join(base_dir, MINE_OS.DIRS['servers'], server_name, 'server.config'),
+    cc: path.join(base_dir, MINE_OS.DIRS['servers'], server_name, 'cron.config')
   }
 
   // ini related functions and vars
@@ -328,7 +334,7 @@ mineos.mc = function(server_name, base_dir) {
       async.apply(fs.chown, self.env.sc, owner['uid'], owner['gid']),
       async.apply(fs.ensureFile, self.env.cc),
       async.apply(fs.chown, self.env.cc, owner['uid'], owner['gid']),
-      async.apply(self.overlay_sp, mineos.SP_DEFAULTS),
+      async.apply(self.overlay_sp, MINE_OS.SP_DEFAULTS),
       async.apply(self.modify_sc, 'java', 'java_binary', ''),
       async.apply(self.modify_sc, 'java', 'java_xmx', '256'),
       async.apply(self.modify_sc, 'onreboot', 'start', false),
@@ -383,7 +389,7 @@ mineos.mc = function(server_name, base_dir) {
           const attempted_move = true;
           const inside_dir = path.join(source_dir, remainder);
           fs.lstat(inside_dir, function(err, stat) {
-            if (stat.isDirectory)
+            if (stat.isDirectory())
               cb(null);
             else
               cb(true);
@@ -398,7 +404,7 @@ mineos.mc = function(server_name, base_dir) {
                 const old_filepath = path.join(old_dir, file);
                 const new_filepath = path.join(source_dir, file);
 
-                fs.move(old_filepath, new_filepath, { clobber: true }, inner_cb)
+                fs.move(old_filepath, new_filepath, inner_cb)
               }, cb);
             else
               cb(err);
@@ -416,7 +422,7 @@ mineos.mc = function(server_name, base_dir) {
     if (filepath.match(/\//))  //if it has a '/', its hopefully an absolute path
       dest_filepath = filepath;
     else // if it doesn't treat it as being from /import/
-      dest_filepath = path.join(self.env.base_dir, mineos.DIRS['import'], filepath);
+      dest_filepath = path.join(self.env.base_dir, MINE_OS.DIRS['import'], filepath);
 
     const split = dest_filepath.split('.');
     let extension = split.pop();
@@ -465,12 +471,10 @@ mineos.mc = function(server_name, base_dir) {
 
         async.series([
           async.apply(self.create, owner),
-          function(cb) {
+          cb => {
             memoize_timestamps = {};
             const proc = child_process.spawn(binary, args, params);
-            proc.once('exit', function(code) {
-              cb(code);
-            })
+            proc.once('exit', code => cb(null, code))
           }
         ], callback)
         break;
@@ -508,14 +512,14 @@ mineos.mc = function(server_name, base_dir) {
         'binary': function (cb) {
           self.sc(function (err, dict) {
             const value = (dict.java || {}).java_binary || java_binary;
-            cb((value.length ? null : 'No java binary assigned for server.'), value);
+            cb((value.length ? null : new Error('No java binary assigned for server.')), value);
           });
         },
         'xmx': function (cb) {
           self.sc(function (err, dict) {
             const value = parseInt((dict.java || {}).java_xmx) || 0;
 
-            cb((value >= 0 ? null : 'XMX heapsize must be positive integer >= 0'), value);
+            cb((value >= 0 ? null : new Error('XMX heapsize must be positive integer >= 0')), value);
           });
         },
         'xms': function (cb) {
@@ -523,14 +527,14 @@ mineos.mc = function(server_name, base_dir) {
             const xmx = parseInt((dict.java || {}).java_xmx) || 0;
             const xms = parseInt((dict.java || {}).java_xms) || 0;
 
-            cb((xmx >= xms && xms >= 0 ? null : 'XMS heapsize must be positive integer where XMX >= XMS >= 0'), xms);
+            cb((xmx >= xms && xms >= 0 ? null : new Error('XMS heapsize must be positive integer where XMX >= XMS >= 0')), xms);
           });
         },
         'jarfile': function (cb) {
           self.sc(function (err, dict) {
             const jarfile = (dict.java || {}).jarfile;
             if (!jarfile)
-              cb('Server not assigned a runnable jar');
+              cb(new Error('Server not assigned a runnable jar'));
             else
               cb(null, jarfile);
           });
@@ -547,7 +551,8 @@ mineos.mc = function(server_name, base_dir) {
             cb(null, value);
           });
         }
-      }, function(err, results) {
+      }, function(err, results: Dictionary<any>) {
+
         if (err) {
           inner_callback(err, {});
         } else {
@@ -559,17 +564,18 @@ mineos.mc = function(server_name, base_dir) {
           if (results.xms > 0)
             args.push(`-Xms${results.xms}M`);
 
+          let splits;
           if (results.java_tweaks) {
-            var splits = results.java_tweaks.split(/ /);
-            for (var i in splits)
+            splits = results.java_tweaks.split(/ /);
+            for (let i in splits)
               args.push(splits[i]);
           }
 
           args.push.apply(args, ['-jar', results.jarfile]);
 
           if (results.jar_args) {
-            var splits = results.jar_args.split(/ /);
-            for (var i in splits)
+            splits = results.jar_args.split(/ /);
+            for (let i in splits)
               args.push(splits[i]);
           }
 
@@ -585,28 +591,28 @@ mineos.mc = function(server_name, base_dir) {
         'binary': function (cb) {
           self.sc(function (err, dict) {
             const value = (dict.java || {}).java_binary || java_binary;
-            cb((value.length ? null : 'No java binary assigned for server.'), value);
+            cb((value.length ? null : new Error('No java binary assigned for server.')), value);
           });
         },
         'xmx': function (cb) {
           self.sc(function (err, dict) {
             const value = parseInt((dict.java || {}).java_xmx) || 0;
 
-            cb((value > 0 ? null : 'XMX heapsize must be positive integer > 0'), value);
+            cb((value > 0 ? null : new Error('XMX heapsize must be positive integer > 0')), value);
           });
         },
         'xms': function (cb) {
           self.sc(function (err, dict) {
             const xmx = parseInt((dict.java || {}).java_xmx) || 0;
             const xms = parseInt((dict.java || {}).java_xms) || xmx;
-            cb((xmx >= xms && xms > 0 ? null : 'XMS heapsize must be positive integer where XMX >= XMS > 0'), xms);
+            cb((xmx >= xms && xms > 0 ? null : new Error('XMS heapsize must be positive integer where XMX >= XMS > 0')), xms);
           });
         },
         'jarfile': function (cb) {
           self.sc(function (err, dict) {
             const jarfile = (dict.java || {}).jarfile;
             if (!jarfile)
-              cb('Server not assigned a runnable jar');
+              cb(new Error('Server not assigned a runnable jar'));
             else
               cb(null, jarfile);
           });
@@ -623,24 +629,25 @@ mineos.mc = function(server_name, base_dir) {
             cb(null, value);
           });
         }
-      }, function(err, results) {
+      }, function(err, results: Dictionary<any>) {
         if (err) {
           inner_callback(err, {});
         } else {
           const args = ['-dmS', `mc-${self.server_name}`];
           args.push.apply(args, [results.binary, '-server', `-Xmx${results.xmx}M`, `-Xms${results.xms}M`]);
 
+          let splits;
           if (results.java_tweaks) {
-            var splits = results.java_tweaks.split(/ /);
-            for (var i in splits)
+            splits = results.java_tweaks.split(/ /);
+            for (let i in splits)
               args.push(splits[i]);
           }
 
           args.push.apply(args, ['-jar', results.jarfile]);
 
           if (results.jar_args) {
-            var splits = results.jar_args.split(/ /);
-            for (var i in splits)
+            splits = results.jar_args.split(/ /);
+            for (let i in splits)
               args.push(splits[i]);
           }
 
@@ -658,7 +665,7 @@ mineos.mc = function(server_name, base_dir) {
         'binary': function (cb) {
           const php7 = path.join(self.env.cwd, '/bin/php7/bin/php');
           try {
-            fs.accessSync(php7, fs.F_OK)
+            fs.accessSync(php7, constants.F_OK)
             cb(null, './bin/php7/bin/php');
           } catch (e) {
             cb(null, './bin/php5/bin/php');
@@ -668,7 +675,7 @@ mineos.mc = function(server_name, base_dir) {
           self.sc(function (err, dict) {
             const pharfile = (dict.java || {}).jarfile;
             if (!pharfile)
-              cb('Server not assigned a runnable phar');
+              cb(new Error('Server not assigned a runnable phar'));
             else
               cb(null, pharfile);
           });
@@ -858,15 +865,15 @@ mineos.mc = function(server_name, base_dir) {
             if (iterations > MAX_ITERATIONS_TO_QUIT)
               return false;
             else
-              return (self.server_name in mineos.server_pids_up())
+              return (self.server_name in MINE_OS.server_pids_up())
           },
           function(cc) {
             iterations += 1;
             setTimeout(cc, test_interval_ms)
           },
           function(ignored_err) {
-            if (self.server_name in mineos.server_pids_up())
-              cb(true); //error, stop did not succeed
+            if (self.server_name in MINE_OS.server_pids_up())
+              cb(new Error("stop did not succeed")); //error, stop did not succeed
             else
               cb(null); //no error, stop succeeded as expected
           }
@@ -890,7 +897,7 @@ mineos.mc = function(server_name, base_dir) {
   }
 
   self.kill = function(callback) {
-    const pids = mineos.server_pids_up();
+    const pids = MINE_OS.server_pids_up();
     const test_interval_ms = 200;
     const MAX_ITERATIONS_TO_QUIT = 150;
 
@@ -909,10 +916,10 @@ mineos.mc = function(server_name, base_dir) {
           if (iterations > MAX_ITERATIONS_TO_QUIT)
             return false;
           else
-            return (self.server_name in mineos.server_pids_up());
+            return (self.server_name in MINE_OS.server_pids_up());
         },
         function(ignored_err) {
-          if (self.server_name in mineos.server_pids_up())
+          if (self.server_name in MINE_OS.server_pids_up())
             callback(true); //error, stop succeeded: false
           else
             callback(null); //no error, stop succeeded: true
@@ -1028,9 +1035,7 @@ mineos.mc = function(server_name, base_dir) {
       },
       function(cb) {
         const proc = child_process.spawn(binary, args, params);
-        proc.once('exit', function(code) {
-          cb(code);
-        })
+        proc.once('exit', code => cb(null, code))
       }
     ], callback);
   }
@@ -1090,9 +1095,7 @@ mineos.mc = function(server_name, base_dir) {
       },
       function(cb) {
         const proc = child_process.spawn(binary, args, params);
-        proc.once('exit', function(code) {
-          cb(code);
-        })
+        proc.once('exit', code => cb(null, code))
       }
     ], callback)
   }
@@ -1161,18 +1164,20 @@ mineos.mc = function(server_name, base_dir) {
         });
 
         const stat = fs.stat;
-        async.map(fullpath, stat, function(inner_err, results){
-          results.forEach(function(value, index) {
-            all_info.push({
-              time: value.mtime,
-              size: value.size,
-              filename: files[index]
+        async.map(fullpath, stat, (inner_err, results: Array<Stats | undefined> | undefined) => {
+          if (results !== undefined) {
+            results.forEach((value, index) => {
+              all_info.push({
+                time: value?.mtime,
+                size: value?.size,
+                filename: files[index]
+              })
             })
-          })
 
-          all_info.sort(function(a, b) {
-            return b.time.getTime() - a.time.getTime();
-          });
+            all_info.sort(function(a, b) {
+              return b.time.getTime() - a.time.getTime();
+            });
+          }
 
           callback(err || inner_err, all_info);
         });
@@ -1269,15 +1274,15 @@ mineos.mc = function(server_name, base_dir) {
         });
         break;
       case 'up':
-        var pids = mineos.server_pids_up();
+        var pids = MINE_OS.server_pids_up();
         callback(null, self.server_name in pids);
         break;
       case '!up':
-        var pids = mineos.server_pids_up();
+        var pids = MINE_OS.server_pids_up();
         callback(null, !(self.server_name in pids));
         break;
       case 'java_pid':
-        var pids = mineos.server_pids_up();
+        var pids = MINE_OS.server_pids_up();
         try {
           callback(null, pids[self.server_name]['java']);
         } catch (e) {
@@ -1285,7 +1290,7 @@ mineos.mc = function(server_name, base_dir) {
         }
         break;
       case 'screen_pid':
-        var pids = mineos.server_pids_up();
+        var pids = MINE_OS.server_pids_up();
         try {
           callback(null, pids[self.server_name]['screen']);
         } catch (e) {
@@ -1303,7 +1308,7 @@ mineos.mc = function(server_name, base_dir) {
         })
         break;
       case 'memory':
-        var pids = mineos.server_pids_up();
+        var pids = MINE_OS.server_pids_up();
         if (self.server_name in pids) {
           const procfs = require('procfs-stats');
           procfs.PROC = PROC_PATH; //procfs will default to /proc--this is determined more accurately by mineos.js!
@@ -1324,7 +1329,7 @@ mineos.mc = function(server_name, base_dir) {
             if (jarfile && jarfile.slice(-5).toLowerCase() == '.phar')
               cb(true, null);
             else {
-              const pids = mineos.server_pids_up();
+              const pids = MINE_OS.server_pids_up();
               if (self.server_name in pids) {
                 self.ping(function(err, ping){
                   cb(null, ping);
@@ -1589,7 +1594,6 @@ mineos.mc = function(server_name, base_dir) {
     }
 
     function send_query_packet(port) {
-      const net = require('net');
       const socket = net.connect({port: port});
       const query = 'modern';
       const QUERIES = {
@@ -1820,5 +1824,3 @@ mineos.mc = function(server_name, base_dir) {
 
   return self;
 }
-
-export default mineos;

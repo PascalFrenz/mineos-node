@@ -110,7 +110,7 @@ The Angular.JS-based web user interface capable of:
 * upstart/supervisord restart process on unhandled exceptions
 * easy selection of server packs from FTB or Mojang official jars
 * PHAR support for Pocketmine servers
-* Support for BungeeCord servers
+* Support for Bungeecord servers
 * command-line interface for scripting
 
 TODO

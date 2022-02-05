@@ -1,30 +1,24 @@
 import { Injectable, OnDestroy } from '@angular/core';
-import { BehaviorSubject, Observable, of, Subscription } from 'rxjs';
-import { ServerHeartbeat } from '../models/server-heartbeat';
+import { Socket } from 'ngx-socket-io';
+import { BehaviorSubject, Observable } from 'rxjs';
 import { HostHeartbeat } from '../models/host-heartbeat';
-import { SocketioWrapper } from './socketio-wrapper';
+import { ServerHeartbeat } from '../models/server-heartbeat';
 
 @Injectable({
   providedIn: 'root',
 })
 export class MineosSocketService implements OnDestroy {
   serverNames$: BehaviorSubject<string[]> = new BehaviorSubject<string[]>([]);
-  sub$: Subscription;
 
-  constructor(private socket: SocketioWrapper) {
-    this.sub$ = this.trackServer().subscribe((serverName) => {
-      this.socket.addNamespace(serverName);
-      let serverNameList = this.serverNames$.value;
-      serverNameList.push(serverName);
-      this.serverNames$.next(serverNameList);
-    });
+  constructor(private socket: Socket) {
+
   }
+
   serverList(): Observable<string[]> {
     return this.serverNames$.asObservable();
   }
 
   ngOnDestroy(): void {
-    this.sub$.unsubscribe();
     this.socket.disconnect();
   }
 
@@ -43,7 +37,7 @@ export class MineosSocketService implements OnDestroy {
   }
 
   serverHeartbeat(serverName: string): Observable<ServerHeartbeat> {
-    return this.socket.fromEvent<ServerHeartbeat>('heartbeat', serverName);
+    return this.socket.fromEvent<ServerHeartbeat>('heartbeat');
   }
 
   trackServer(): Observable<string> {

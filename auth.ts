@@ -3,11 +3,10 @@ import hash from "sha512crypt-node";
 import fs from "fs-extra";
 import crypt from "apache-crypt";
 import passwd from "etc-passwd";
+import posix from "posix";
+import userid from "userid";
+
 const pam = require('authenticate-pam')
-const posix = require('posix')
-const userid = require('userid')
-
-
 let auth: any = {};
 
 auth.authenticate_shadow = function(user, plaintext, callback) {
@@ -15,16 +14,17 @@ auth.authenticate_shadow = function(user, plaintext, callback) {
 
   function etc_shadow(inner_callback) {
     // return true if error, false if auth failed, string for user if successful
-    const passwd = require('etc-passwd');
-
     fs.stat('/etc/shadow', function(err, stat_info) {
-      if (err)
+      if (err) {
+        console.log("fs stat threw err: ", err);
         inner_callback(true);
-      else {
+      } else {
         passwd.getShadow({username: user}, function(err, shadow_info) {
-          if (shadow_info && shadow_info.password == '!')
+          if (shadow_info && shadow_info.password == '!') {
+            console.log("getShadow did not contain password!")
             inner_callback(false);
-          else if (shadow_info) {
+          } else if (shadow_info) {
+            console.log("getShadow got info")
             const password_parts = shadow_info['password'].split(/\$/);
             const salt = password_parts[2];
             const new_hash = hash.sha512crypt(plaintext, salt);
@@ -32,6 +32,7 @@ auth.authenticate_shadow = function(user, plaintext, callback) {
             const passed = (new_hash == shadow_info['password'] ? user : false);
             inner_callback(passed);
           } else {
+            console.log("getShadow threw err: ", err)
             inner_callback(true);
           }
         })
@@ -52,47 +53,54 @@ auth.authenticate_shadow = function(user, plaintext, callback) {
         const new_hash = hash.sha512crypt(plaintext, salt);
         const passed = (new_hash == user_data.passwd ? user : false);
         inner_callback(passed);
-      } else
+      } else {
+        console.log("could not authenticate with posix")
         inner_callback(false);
+      }
     } catch (e) {
+      console.log("posix failed with err: ", e)
       inner_callback(true);
       return;
     }
   }
 
   function pamf(inner_callback) {
-    // return true if error, false if auth failed, string for user if successful
-    try {
-
-    } catch (e) {
-      inner_callback(true);
-      return;
-    }
-
     pam.authenticate(user, plaintext, function(err) {
-      if (err)
+      if (err) {
+        console.log("pam failed with err: ", err)
         inner_callback(false);
-      else
+      } else {
         inner_callback(user);
+      }
     })
   }
 
+  console.log("authenticating.. ")
   pamf(function(pam_passed) {
     //due to the stack of different auths, a false if auth failed is largely ignored
-    if (typeof pam_passed == 'string')
+    if (typeof pam_passed == 'string') {
+      console.log("pam passsed")
       callback(pam_passed);
-    else
-      etc_shadow(function(etc_passed) {
-        if (typeof etc_passed == 'string')
+    } else {
+      console.log("pam failed")
+      etc_shadow(function (etc_passed) {
+        if (typeof etc_passed == 'string') {
+          console.log("shadow passed")
           callback(etc_passed)
-        else
-          posixf(function(posix_passed) {
-            if (typeof posix_passed == 'string')
+        } else {
+          console.log("shadow failed")
+          posixf(function (posix_passed) {
+            if (typeof posix_passed == 'string') {
+              console.log("posix passed")
               callback(posix_passed)
-            else
+            } else {
+              console.log("could not authenticate")
               callback(false);
+            }
           })
+        }
       })
+    }
   })
 }
 
@@ -125,7 +133,7 @@ auth.verify_ids = function(uid, gid, callback) {
           })
           .on('end', function () {
             if (!uid_present)
-              cb('UID ' + uid + ' does not exist on this system');
+              cb(new Error('UID ' + uid + ' does not exist on this system'));
             else
               cb();
           });
@@ -138,7 +146,7 @@ auth.verify_ids = function(uid, gid, callback) {
           })
           .on('end', function () {
             if (!gid_present)
-              cb('GID ' + gid + ' does not exist on this system');
+              cb(new Error('GID ' + gid + ' does not exist on this system'));
             else
               cb();
           });

@@ -1,20 +1,24 @@
+import path from "path";
+import fs from "fs-extra";
+import async from "async";
+import {DEFAULT_PROFILE, Profile} from "./template";
+import {ProfileDefinition} from "./profiles";
 
-// var async = require('async');
-var path = require('path');
-var fs = require('fs-extra');
-var profile = require('./template');
+import child from "child_process";
 
-exports.profile = {
+import which from "which";
+
+export const Cuberite: ProfileDefinition = {
   name: "Cuberite C++ Server",
   request_args: {
     url: 'http://builds.cuberite.org/rssLatest',
     json: false
   },
-  handler: function (profile_dir, body, callback) {
-    var p = [];
+  handler: (profile_dir, body, callback) => {
+    const p: Profile[] = [];
 
     try {  // BEGIN PARSING LOGIC
-      var item = new profile();
+      const item = Object.assign({}, DEFAULT_PROFILE);
 
       item['id'] = 'cuberite-x64-latest';
       item['time'] = new Date().getTime();
@@ -72,32 +76,30 @@ exports.profile = {
       item['url'] = 'https://builds.cuberite.org/job/Cuberite-FreeBSD-x64-Master/lastSuccessfulBuild/artifact/Cuberite.tar.gz';
       p.push(JSON.parse(JSON.stringify(item)));
 
-    } catch (e) { }
+    } catch (e) {
+      console.error(e);
+    }
 
     callback(null, p);
   }, //end handler
-  postdownload: function (profile_dir, dest_filepath, callback) {
-    var child = require('child_process');
-    var which = require('which');
-    var binary = which.sync('tar');
-    var args = ['--force-local',
+  postdownload: (profile_dir, dest_filepath, callback) => {
+    const binary = which.sync('tar');
+    const args = ['--force-local',
       '-xf', dest_filepath];
-    var params = { cwd: profile_dir }
+    const params = {cwd: profile_dir};
 
     async.series([
-      function (cb) {
-        var proc = child.spawn(binary, args, params);
-        proc.once('exit', function (code) {
-          cb(code);
-        })
+      cb => {
+        const proc = child.spawn(binary, args, params);
+        proc.once('exit', code => cb(null, code))
       },
-      function (cb) {
-        var inside_dir = path.join(profile_dir, 'Server');
-        fs.readdir(inside_dir, function (err, files) {
+      cb => {
+        const inside_dir = path.join(profile_dir, 'Server');
+        fs.readdir(inside_dir, (err, files) => {
           if (!err)
-            async.each(files, function (file, inner_cb) {
-              var old_filepath = path.join(inside_dir, file);
-              var new_filepath = path.join(profile_dir, file);
+            async.each(files, (file, inner_cb) => {
+              const old_filepath = path.join(inside_dir, file);
+              const new_filepath = path.join(profile_dir, file);
 
               fs.move(old_filepath, new_filepath, inner_cb);
             }, cb);
