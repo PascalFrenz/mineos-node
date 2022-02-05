@@ -1,5 +1,5 @@
 [program:mineos]
-command=/usr/local/bin/ts-node webui.ts
+command=/usr/local/bin/ts-node ./src/webui.ts
 directory=/usr/games/minecraft
 environment=HOME=/root
 user=root

@@ -1,5 +1,5 @@
 var async = require('async');
-var auth = require('../auth');
+var auth = require('../src/auth');
 var test = exports;
 
 test.authenticate_shadow = function(test) {

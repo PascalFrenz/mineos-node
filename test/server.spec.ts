@@ -1,7 +1,7 @@
 import { createServer } from "http";
 import { Server, Socket } from "socket.io";
 import { io as Client, Socket as ClientSocket } from "socket.io-client";
-import { backend } from "../server";
+import { backend } from "../src/server";
 
 describe('testing websocket server', function () {
   let io: Server, serverSocket: Socket, clientSocket: ClientSocket;

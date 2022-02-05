@@ -6,7 +6,7 @@ import fs from "fs-extra";
 import { constants } from "fs";
 import procfs from "procfs-stats";
 import which from "which";
-import profiles_const from "./profiles.d/profiles"
+import profiles_const from "../profiles.d/profiles"
 import dgram from "dgram";
 import fireworm from "fireworm";
 import userid from "userid";
@@ -27,19 +27,93 @@ import winston from "winston";
 import passwd from "etc-passwd";
 import { Server } from "socket.io";
 
-
 winston.add(new winston.transports.File({
   filename: '/var/log/mineos.log',
   handleExceptions: true
 }));
 
+class Backend {
+  constructor(
+    private base_dir: string,
+    private socket_emitter: Server,
+    private user_config: Record<string, string> & { creators?: string}
+  ) {
+    process.umask(0o002);
+
+    fs.ensureDirSync(base_dir);
+    fs.ensureDirSync(path.join(base_dir, MINE_OS.DIRS['servers']));
+    fs.ensureDirSync(path.join(base_dir, MINE_OS.DIRS['backup']));
+    fs.ensureDirSync(path.join(base_dir, MINE_OS.DIRS['archive']));
+    fs.ensureDirSync(path.join(base_dir, MINE_OS.DIRS['import']));
+    fs.ensureDirSync(path.join(base_dir, MINE_OS.DIRS['profiles']));
+
+    fs.chmod(path.join(base_dir, MINE_OS.DIRS['import']), 0o777);
+  }
+}
+
+class ServerDiscovery {
+  private servers: any[] = [];
+
+  constructor(private server_path: string, private front_end: Server, private user_config: any) {
+    const discovered_servers = this.discover();
+    for (let i in discovered_servers)
+      this.track(discovered_servers[i]);
+  }
+
+  public startServerWatcher() {
+    fs.watch(this.server_path, () => {
+      const current_servers = this.discover();
+
+      for (let i in current_servers)
+        if (!(current_servers[i] in this.servers)) //if detected directory not a discovered server, track
+          this.track(current_servers[i]);
+
+      for (let s in this.servers)
+        if (current_servers.indexOf(s) < 0)
+          this.untrack(s);
+    });
+  }
+
+  private discover() {
+    //http://stackoverflow.com/a/24594123/1191579
+    return fs.readdirSync(this.server_path).filter((p) => {
+      try {
+        return fs.statSync(path.join(this.server_path, p)).isDirectory();
+      } catch (e) {
+        winston.warn(`Filepath ${path.join(this.server_path, p)} does not point to an existing directory`);
+      }
+    });
+  }
+
+  private track(sn) {
+    this.servers[sn] = null;
+    //if new server_container() isn't instant, double broadcast might trigger this if/then twice
+    //setting to null is immediate and prevents double execution
+    this.servers[sn] = new server_container(sn, this.user_config, this.front_end);
+    this.front_end.emit('track_server', sn);
+  }
+
+  private untrack(sn) {
+    try {
+      this.servers[sn].cleanup();
+      delete this.servers[sn];
+    } catch (e) {
+      //if server has already been deleted and this is running for reasons unknown, catch and ignore
+    } finally {
+      this.front_end.emit('untrack_server', sn);
+    }
+  }
+}
+
+
 export const backend = function (this: any, base_dir: string, socket_emitter: Server, user_config: { creators?: string; }): void {
   const self = this;
-
+  const serverWatcher = new ServerDiscovery(path.join(base_dir, MINE_OS.DIRS['servers']), socket_emitter, user_config);
   self.servers = {};
   self.profiles = [];
   self.front_end = socket_emitter;
   self.commit_msg = '';
+
 
   process.umask(0o002);
 
@@ -102,57 +176,6 @@ export const backend = function (this: any, base_dir: string, socket_emitter: Se
     setInterval(host_heartbeat, HOST_HEARTBEAT_DELAY_MS);
   }
 
-  function initServerDiscovery() {
-    const server_path = path.join(base_dir, MINE_OS.DIRS['servers']);
-
-    function discover() {
-      //http://stackoverflow.com/a/24594123/1191579
-      return fs.readdirSync(server_path).filter(function (p) {
-        try {
-          return fs.statSync(path.join(server_path, p)).isDirectory();
-        } catch (e) {
-          winston.warn(`Filepath ${path.join(server_path, p)} does not point to an existing directory`);
-        }
-      });
-    }
-
-    function track(sn) {
-      self.servers[sn] = null;
-      //if new server_container() isn't instant, double broadcast might trigger this if/then twice
-      //setting to null is immediate and prevents double execution
-      self.servers[sn] = new server_container(sn, user_config, self.front_end);
-      self.front_end.emit('track_server', sn);
-    }
-
-    function untrack(sn) {
-      try {
-        self.servers[sn].cleanup();
-        delete self.servers[sn];
-      } catch (e) {
-        //if server has already been deleted and this is running for reasons unknown, catch and ignore
-      } finally {
-        self.front_end.emit('untrack_server', sn);
-      }
-    }
-
-    const discovered_servers = discover();
-    for (var i in discovered_servers)
-      track(discovered_servers[i]);
-
-    fs.watch(server_path, function () {
-      const current_servers = discover();
-
-      for (let i in current_servers)
-        if (!(current_servers[i] in self.servers)) //if detected directory not a discovered server, track
-          track(current_servers[i]);
-
-      for (let s in self.servers)
-        if (current_servers.indexOf(s) < 0)
-          untrack(s);
-
-    })
-  }
-
   function initFirewormWatcher() {
     const importable_archives = path.join(base_dir, MINE_OS.DIRS['import']);
     const fw = fireworm(importable_archives);
@@ -174,7 +197,7 @@ export const backend = function (this: any, base_dir: string, socket_emitter: Se
 
   initUdpBroadcaster();
   initHeartbeat();
-  initServerDiscovery();
+  serverWatcher.startServerWatcher();
   initFirewormWatcher();
 
 

@@ -18,7 +18,7 @@ import { Command, OptionValues } from "commander";
 import Q from "q";
 import { Server } from 'socket.io';
 import ini from "ini";
-import { User } from "./mineos-app/src/app/models/user";
+import { User } from "../mineos-app/src/app/models/user";
 
 type WebUIArgs = {
   configFile: string;

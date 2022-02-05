@@ -7,9 +7,9 @@ User=root
 WorkingDirectory=/usr/games/minecraft
 Type=forking
 Environment="SHELL=/bin/bash"
-ExecStart=/usr/local/bin/ts-node service.ts start
-ExecStop=/usr/local/bin/ts-node service.ts stop
-ExecReload=/usr/local/bin/ts-node service.ts restart
+ExecStart=/usr/local/bin/ts-node ./src/service.ts start
+ExecStop=/usr/local/bin/ts-node ./src/service.ts stop
+ExecReload=/usr/local/bin/ts-node ./src/service.ts restart
 PIDFile=/var/run/mineos.pid
 Restart=on-failure
 KillMode=process

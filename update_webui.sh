@@ -42,7 +42,7 @@ if [ $? -eq 0 ]; then ECHO_LOG "OK"; else ECHO_LOG "FAILED" && exit 1; fi
 
 ECHO_LOG_N "Setting node javascript files to executable..."
 cd ..
-chmod +x mineos_console.ts webui.ts update_webui.sh reset_webui.sh >> $LOG
+chmod +x ./src/mineos_console.ts ./src/webui.ts update_webui.sh reset_webui.sh >> $LOG
 if [ $? -eq 0 ]; then ECHO_LOG "OK"; else ECHO_LOG "FAILED" && exit 1; fi
 
 ECHO_LOG_N "Script execution ended on: "

@@ -12,7 +12,7 @@ start() {
                 --chdir /usr/games/minecraft \
                 --pidfile /var/run/mineos.pid \
                 --exec "/usr/local/bin/ts-node" \
-                -- service.ts start
+                -- ./src/service.ts start
 }
 
 stop() {
@@ -20,5 +20,5 @@ stop() {
                 --chdir /usr/games/minecraft \
                 --pidfile /var/run/mineos.pid \
                 --exec "/usr/local/bin/ts-node" \
-                -- service.ts stop
+                -- ./src/service.ts stop
 }

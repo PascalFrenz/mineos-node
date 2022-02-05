@@ -30,8 +30,7 @@ RUN mkdir -p /usr/games/minecraft
 COPY . /usr/games/minecraft
 RUN cd /usr/games/minecraft; \
     cp mineos.conf /etc/mineos.conf; \
-    chmod +x webui.ts mineos_console.ts service.ts; \
-    ls -la /usr/games/minecraft
+    chmod +x ./src/webui.ts ./src/mineos_console.ts ./src/service.ts; \
 
 #build npm deps and clean up apt for image minimalization
 RUN cd /usr/games/minecraft \
