@@ -25,15 +25,15 @@ import child_process from "child_process";
 import winston from "winston";
 
 import passwd from "etc-passwd";
+import { Server } from "socket.io";
 
-let server: any = {};
 
 winston.add(new winston.transports.File({
   filename: '/var/log/mineos.log',
   handleExceptions: true
 }));
 
-server.backend = function (base_dir, socket_emitter, user_config) {
+export const backend = function (this: any, base_dir: string, socket_emitter: Server, user_config: { creators?: string; }): void {
   const self = this;
 
   self.servers = {};
@@ -319,7 +319,7 @@ server.backend = function (base_dir, socket_emitter, user_config) {
             function (cb) {
               let whitelisted_creators = [username]; //by default, accept create attempt by current user
               if ((user_config || {}).creators) {  //if creators key:value pair exists, use it
-                whitelisted_creators = user_config['creators'].split(',');
+                whitelisted_creators = user_config['creators']?.split(',') ?? [];
                 whitelisted_creators = whitelisted_creators.filter(function (e) {
                   return e
                 }); //remove non-truthy entries like ''
@@ -1410,5 +1410,3 @@ function server_container(this: any, server_name, user_config, socket_io) {
 
   }) //nsp on connect container ends
 }
-
-export default server;

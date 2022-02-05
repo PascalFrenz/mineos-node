@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { MINE_OS } from "./mineos";
-import server from "./server";
+import { backend } from "./server";
 import auth from "./auth";
 import async from "async";
 import fs from "fs-extra";
@@ -17,7 +17,6 @@ import { randomBytes } from "crypto";
 import { Command, OptionValues } from "commander";
 import Q from "q";
 import { Server } from 'socket.io';
-
 import ini from "ini";
 import { User } from "./mineos-app/src/app/models/user";
 
@@ -27,8 +26,8 @@ type WebUIArgs = {
 
 const sessionStore = new expressSession.MemoryStore();
 const app = express();
-let http = createServer(app);
-const io = new Server(http);
+const http = createServer(app);
+const io = new Server<{}, {}, {}, any>(http);
 
 const program = new Command();
 program.option("-c, --config-file <path>");
@@ -178,7 +177,7 @@ MINE_OS.dependencies((err, binaries) => {
     process.exit(4);
   }
 
-  const be = new server.backend(base_directory, io, mineos_config);
+  const be = new backend(base_directory, io, mineos_config);
 
   app.get('/', (req, res) => {
     if (USE_NEW_UI) {
