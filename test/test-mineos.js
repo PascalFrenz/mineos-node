@@ -1,9 +1,7 @@
 var fs = require('fs-extra');
 var path = require('path');
 var async = require('async');
-var mineos = require('../mineos');
 var userid = require('userid');
-var whoami = require('whoami');
 var test = exports;
 
 var BASE_DIR = '/var/games/minecraft';
@@ -20,10 +18,10 @@ function oct2dec(octal_val) {
 }
 
 function delete_everything(callback) {
-  var server_list = new mineos.server_list(BASE_DIR);
+  var server_list = new MINE_OS.server_list(BASE_DIR);
 
   function delete_server(server_name, cb) {
-    var instance = new mineos.mc(server_name, BASE_DIR);
+    var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
     async.series([
       function(c) { instance.kill(function(err) { c() }) },
@@ -38,10 +36,10 @@ function delete_everything(callback) {
 
 test.setUp = function(callback) {
   async.parallel([
-    async.apply(fs.ensureDir, path.join(BASE_DIR, mineos.DIRS['servers'])),
-    async.apply(fs.ensureDir, path.join(BASE_DIR, mineos.DIRS['archive'])),
-    async.apply(fs.ensureDir, path.join(BASE_DIR, mineos.DIRS['backup'])),
-    async.apply(fs.ensureDir, path.join(BASE_DIR, mineos.DIRS['profiles'])),
+    async.apply(fs.ensureDir, path.join(BASE_DIR, MINE_OS.DIRS['servers'])),
+    async.apply(fs.ensureDir, path.join(BASE_DIR, MINE_OS.DIRS['archive'])),
+    async.apply(fs.ensureDir, path.join(BASE_DIR, MINE_OS.DIRS['backup'])),
+    async.apply(fs.ensureDir, path.join(BASE_DIR, MINE_OS.DIRS['profiles'])),
   ], function() {
     delete_everything(callback);
   })
@@ -53,7 +51,7 @@ test.tearDown = function(callback) {
 
 test.dependencies_met = function(test) {
   async.series([
-    async.apply(mineos.dependencies)
+    async.apply(MINE_OS.dependencies)
   ], function(err, results) {
     test.ifError(err);
     test.done();
@@ -61,11 +59,11 @@ test.dependencies_met = function(test) {
 }
 
 test.server_list = function (test) {
-  var servers = mineos.server_list(BASE_DIR);
-  var instance = new mineos.mc('testing', BASE_DIR);
+  var servers = MINE_OS.server_list(BASE_DIR);
+  var instance = new MINE_OS.mc('testing', BASE_DIR);
 
   instance.create(OWNER_CREDS, function(err, did_create) {
-    servers = mineos.server_list(BASE_DIR);
+    servers = MINE_OS.server_list(BASE_DIR);
     test.ifError(err);
     test.ok(servers instanceof Array, "server returns an array");
     test.done();
@@ -73,7 +71,7 @@ test.server_list = function (test) {
 };
 
 test.server_list_up = function(test) {
-  var servers = mineos.server_list_up();
+  var servers = MINE_OS.server_list_up();
   test.ok(servers instanceof Array);
 
   for (var i=0; i < servers.length; i++) {
@@ -85,7 +83,7 @@ test.server_list_up = function(test) {
 
 test.is_server = function(test) {
   //tests if sp exists
-  var instance = new mineos.mc('testing', BASE_DIR);
+  var instance = new MINE_OS.mc('testing', BASE_DIR);
 
   async.series([
     function(callback) {
@@ -112,9 +110,9 @@ test.is_server = function(test) {
 
 test.create_server = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
-  test.equal(mineos.server_list(BASE_DIR).length, 0);
+  test.equal(MINE_OS.server_list(BASE_DIR).length, 0);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -143,8 +141,8 @@ test.create_server = function(test) {
       test.equal(oct2dec(fs.statSync(instance.env.sc).mode), 664);
       test.equal(oct2dec(fs.statSync(instance.env.cc).mode), 664);
 
-      test.equal(mineos.server_list(BASE_DIR)[0], server_name);
-      test.equal(mineos.server_list(BASE_DIR).length, 1);
+      test.equal(MINE_OS.server_list(BASE_DIR)[0], server_name);
+      test.equal(MINE_OS.server_list(BASE_DIR).length, 1);
 
       instance.sc(function(err, dict) {
         test.equal(dict.java.java_xmx, '256');
@@ -167,7 +165,7 @@ test.create_server = function(test) {
 
 test.server_ownership = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     function(callback) {
@@ -223,7 +221,7 @@ test.server_ownership = function(test) {
 
 test.delete_server = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     function(callback) {
@@ -245,47 +243,47 @@ test.delete_server = function(test) {
 
 test.mc_instance = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   test.ok(instance.env instanceof Object);
 
-  test.equal(instance.env.cwd, path.join(BASE_DIR, mineos.DIRS['servers'], server_name));
-  test.equal(instance.env.bwd, path.join(BASE_DIR, mineos.DIRS['backup'], server_name));
-  test.equal(instance.env.awd, path.join(BASE_DIR, mineos.DIRS['archive'], server_name));
+  test.equal(instance.env.cwd, path.join(BASE_DIR, MINE_OS.DIRS['servers'], server_name));
+  test.equal(instance.env.bwd, path.join(BASE_DIR, MINE_OS.DIRS['backup'], server_name));
+  test.equal(instance.env.awd, path.join(BASE_DIR, MINE_OS.DIRS['archive'], server_name));
   test.equal(instance.env.base_dir, BASE_DIR);
   test.equal(instance.server_name, server_name);
-  test.equal(instance.env.sp, path.join(BASE_DIR, mineos.DIRS['servers'], server_name, 'server.properties'));
+  test.equal(instance.env.sp, path.join(BASE_DIR, MINE_OS.DIRS['servers'], server_name, 'server.properties'));
   test.done();
 }
 
 test.valid_server_name = function(test) {
   var regex_valid_server_name = /^(?!\.)[a-zA-Z0-9_\.]+$/;
-  test.ok(mineos.valid_server_name('aaa'));
-  test.ok(mineos.valid_server_name('server_1'));
-  test.ok(mineos.valid_server_name('myserver'));
-  test.ok(mineos.valid_server_name('1111'));
-  test.ok(!mineos.valid_server_name('.aaa'));
-  test.ok(!mineos.valid_server_name(''));
-  test.ok(!mineos.valid_server_name('something!'));
-  test.ok(!mineos.valid_server_name('#hashtag'));
-  test.ok(!mineos.valid_server_name('my server'));
-  test.ok(!mineos.valid_server_name('bukkit^ftb'));
+  test.ok(MINE_OS.valid_server_name('aaa'));
+  test.ok(MINE_OS.valid_server_name('server_1'));
+  test.ok(MINE_OS.valid_server_name('myserver'));
+  test.ok(MINE_OS.valid_server_name('1111'));
+  test.ok(!MINE_OS.valid_server_name('.aaa'));
+  test.ok(!MINE_OS.valid_server_name(''));
+  test.ok(!MINE_OS.valid_server_name('something!'));
+  test.ok(!MINE_OS.valid_server_name('#hashtag'));
+  test.ok(!MINE_OS.valid_server_name('my server'));
+  test.ok(!MINE_OS.valid_server_name('bukkit^ftb'));
 
   test.done();
 }
 
 test.extract_server_name = function(test) {
-  test.equal(mineos.extract_server_name(BASE_DIR, '/var/games/minecraft/servers/a'), 'a');
-  test.equal(mineos.extract_server_name(BASE_DIR, '/var/games/minecraft/servers/a/b'), 'a');
-  test.equal(mineos.extract_server_name(BASE_DIR, '/var/games/minecraft/servers/a/b/plugins'), 'a');
-  test.throws(function(){mineos.extract_server_name(BASE_DIR, '/var/games/minecraft/servers')}, 'no server name in path');
-  test.throws(function(){mineos.extract_server_name(BASE_DIR, '/var/games/minecraft')}, 'no server name in path');
+  test.equal(MINE_OS.extract_server_name(BASE_DIR, '/var/games/minecraft/servers/a'), 'a');
+  test.equal(MINE_OS.extract_server_name(BASE_DIR, '/var/games/minecraft/servers/a/b'), 'a');
+  test.equal(MINE_OS.extract_server_name(BASE_DIR, '/var/games/minecraft/servers/a/b/plugins'), 'a');
+  test.throws(function(){MINE_OS.extract_server_name(BASE_DIR, '/var/games/minecraft/servers')}, 'no server name in path');
+  test.throws(function(){MINE_OS.extract_server_name(BASE_DIR, '/var/games/minecraft')}, 'no server name in path');
   test.done();
 }
 
 test.get_start_args = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -342,7 +340,7 @@ test.get_start_args = function(test) {
 
 test.get_start_args_java = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -490,7 +488,7 @@ test.get_start_args_java = function(test) {
 
 test.get_start_args_forge = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -535,7 +533,7 @@ test.get_start_args_forge = function(test) {
 
 test.get_start_args_cuberite = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -557,7 +555,7 @@ test.get_start_args_cuberite = function(test) {
 
 test.get_start_args_phar = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -593,7 +591,7 @@ test.get_start_args_phar = function(test) {
 
 test.get_start_args_unconventional = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create_unconventional_server, OWNER_CREDS),
@@ -606,7 +604,7 @@ test.get_start_args_unconventional = function(test) {
         callback(!err);
       })
     },
-    async.apply(instance.modify_sc, 'java', 'jarfile', 'BungeeCord-1078.jar'),
+    async.apply(instance.modify_sc, 'java', 'jarfile', 'Bungeecord-1078.jar'),
     function(callback) {
       instance.get_start_args(function(err, args) {
         test.ifError(err);
@@ -615,7 +613,7 @@ test.get_start_args_unconventional = function(test) {
         test.equal(args[2].slice(-4), 'java');
         test.equal(args[3], '-server');
         test.equal(args[4], '-jar');
-        test.equal(args[5], 'BungeeCord-1078.jar');
+        test.equal(args[5], 'Bungeecord-1078.jar');
         callback(err);
       })
     },
@@ -629,7 +627,7 @@ test.get_start_args_unconventional = function(test) {
         test.equal(args[3], '-server');
         test.equal(args[4], '-Xmx256M');
         test.equal(args[5], '-jar');
-        test.equal(args[6], 'BungeeCord-1078.jar');
+        test.equal(args[6], 'Bungeecord-1078.jar');
         callback(err);
       })
     },
@@ -644,7 +642,7 @@ test.get_start_args_unconventional = function(test) {
         test.equal(args[4], '-Xmx256M');
         test.equal(args[5], '-Xms128M');
         test.equal(args[6], '-jar');
-        test.equal(args[7], 'BungeeCord-1078.jar');
+        test.equal(args[7], 'Bungeecord-1078.jar');
         callback(err);
       })
     },
@@ -659,7 +657,7 @@ test.get_start_args_unconventional = function(test) {
         test.equal(args[4], '-Xmx256M');
         test.equal(args[5], '-Xms128M');
         test.equal(args[6], '-jar');
-        test.equal(args[7], 'BungeeCord-1078.jar');
+        test.equal(args[7], 'Bungeecord-1078.jar');
         test.equal(args.length, 8);
         callback(err);
       })
@@ -675,7 +673,7 @@ test.get_start_args_unconventional = function(test) {
         test.equal(args[4], '-Xmx256M');
         test.equal(args[5], '-Xms128M');
         test.equal(args[6], '-jar');
-        test.equal(args[7], 'BungeeCord-1078.jar');
+        test.equal(args[7], 'Bungeecord-1078.jar');
         test.equal(args[8], 'nogui');
         test.equal(args.length, 9);
         callback(err);
@@ -692,7 +690,7 @@ test.get_start_args_unconventional = function(test) {
         test.equal(args[4], '-Xmx256M');
         test.equal(args[5], '-Xms128M');
         test.equal(args[6], '-jar');
-        test.equal(args[7], 'BungeeCord-1078.jar');
+        test.equal(args[7], 'Bungeecord-1078.jar');
         test.equal(args[8], 'nogui');
         test.equal(args[9], '--installServer');
         test.equal(args.length, 10);
@@ -707,7 +705,7 @@ test.get_start_args_unconventional = function(test) {
 
 test.start = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     function(callback) {
@@ -753,7 +751,7 @@ test.start = function(test) {
 
 test.stop = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     function(callback) {
@@ -779,7 +777,7 @@ test.stop = function(test) {
 
 test.stop_and_backup = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -802,7 +800,7 @@ test.stop_and_backup = function(test) {
 
 test.restart = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -825,7 +823,7 @@ test.restart = function(test) {
 
 test.kill = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     function(callback) {
@@ -863,7 +861,7 @@ test.kill = function(test) {
 
 test.archive = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -881,7 +879,7 @@ test.archive = function(test) {
 
 test.backup = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -899,7 +897,7 @@ test.backup = function(test) {
 
 test.backup_exclude_dynmap = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -918,7 +916,7 @@ test.backup_exclude_dynmap = function(test) {
 
 test.restore = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -939,7 +937,7 @@ test.restore = function(test) {
 
 test.sc = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -978,7 +976,7 @@ test.sc = function(test) {
 
 test.sc_deleted = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
   
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -1013,7 +1011,7 @@ test.sc_deleted = function(test) {
 
 test.sp = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -1041,7 +1039,7 @@ test.sp = function(test) {
 
 test.owner_unknown_ids = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -1064,7 +1062,7 @@ test.owner_unknown_ids = function(test) {
 
 test.properties = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     function(callback) {
@@ -1270,7 +1268,7 @@ test.properties = function(test) {
 
 test.verify = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
   
   async.series([
     async.apply(instance.verify, '!exists'),
@@ -1335,7 +1333,7 @@ test.verify = function(test) {
 
 test.ping = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -1366,7 +1364,7 @@ test.ping = function(test) {
 
 test.ping_legacy = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -1397,7 +1395,7 @@ test.ping_legacy = function(test) {
 
 test.ping_phar = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -1417,7 +1415,7 @@ test.ping_phar = function(test) {
 
 test.query = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -1471,7 +1469,7 @@ test.query = function(test) {
 
 test.memory = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
   var memory_regex = /(\d+) kB/
 
   async.series([
@@ -1500,7 +1498,7 @@ test.memory = function(test) {
 
 test.prune = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   var saved_increment = null;
 
@@ -1549,7 +1547,7 @@ test.prune = function(test) {
 
 test.modify_sp = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -1577,7 +1575,7 @@ test.modify_sp = function(test) {
 
 test.list_archive = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     function(callback) {
@@ -1609,7 +1607,7 @@ test.list_archive = function(test) {
 
 test.delete_archive = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.waterfall([
     function(callback) {
@@ -1662,7 +1660,7 @@ test.previous_version = function(test) {
   var ini = require('ini');
   
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -1707,7 +1705,7 @@ test.previous_version = function(test) {
 
 test.previous_property = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -1746,7 +1744,7 @@ test.previous_property = function(test) {
 
 test.stuff = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     function(callback) {
@@ -1780,7 +1778,7 @@ test.stuff = function(test) {
 
 test.saveall = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -1841,7 +1839,7 @@ test.saveall = function(test) {
 
 test.saveall_latest_log = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -1873,7 +1871,7 @@ test.saveall_latest_log = function(test) {
 
 test.property_autosave_179 = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -1916,7 +1914,7 @@ test.property_autosave_179 = function(test) {
 
 test.property_autosave_1102 = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -1960,7 +1958,7 @@ test.property_autosave_1102 = function(test) {
 
 test.check_eula = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.waterfall([
     async.apply(instance.create, OWNER_CREDS),
@@ -2031,7 +2029,7 @@ test.check_eula = function(test) {
 
 test.accept_eula = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.waterfall([
     async.apply(instance.create, OWNER_CREDS),
@@ -2062,7 +2060,7 @@ test.chown = function(test) {
   var userid = require('userid');
 
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   var NEW_OWNER_CREDS = {
     uid: 1001,
@@ -2120,7 +2118,7 @@ test.chown_recursive = function(test) {
   var userid = require('userid');
 
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   var NEW_OWNER_CREDS = {
     uid: 1001,
@@ -2179,8 +2177,8 @@ test.sync_chown = function(test) {
   var userid = require('userid');
 
   var server_name = 'testing';
-  var server_path = path.join(BASE_DIR, mineos.DIRS['servers'], server_name);
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var server_path = path.join(BASE_DIR, MINE_OS.DIRS['servers'], server_name);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(fs.ensureDir, server_path),
@@ -2210,7 +2208,7 @@ test.sync_chown = function(test) {
 
 test.broadcast_property = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -2237,7 +2235,7 @@ test.broadcast_property = function(test) {
 
 test.commit_interval_property = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -2312,7 +2310,7 @@ test.commit_interval_property = function(test) {
 
 test.server_files_property = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     function(callback) {
@@ -2431,7 +2429,7 @@ test.server_files_property = function(test) {
 
 test.copy_profile = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
   var jar_filepath = path.join(instance.env.cwd, 'minecraft_server.1.7.9.jar')
 
   async.series([
@@ -2466,7 +2464,7 @@ test.copy_profile = function(test) {
 
 test.eula_false = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -2504,7 +2502,7 @@ test.crons = function(test) {
   var hash = require('object-hash');
 
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   var cron_def1 = {
     action: 'stuff',
@@ -2587,15 +2585,15 @@ test.crons = function(test) {
 
 test.create_server_from_awd = function(test) {
   var server_name = 'testing';
-  var temporary_instance = new mineos.mc(server_name, BASE_DIR);
-  var new_instance = new mineos.mc('testing_server_2', BASE_DIR);
+  var temporary_instance = new MINE_OS.mc(server_name, BASE_DIR);
+  var new_instance = new MINE_OS.mc('testing_server_2', BASE_DIR);
 
   var archive_filepath = null;
 
   async.series([
     async.apply(temporary_instance.create, OWNER_CREDS),
     function(callback) {
-      var servers = mineos.server_list(BASE_DIR);
+      var servers = MINE_OS.server_list(BASE_DIR);
       test.equal(servers.length, 1);
       callback();
     },
@@ -2626,7 +2624,7 @@ test.create_server_from_awd = function(test) {
       })
     },
     function(callback) {
-      var servers = mineos.server_list(BASE_DIR);
+      var servers = MINE_OS.server_list(BASE_DIR);
       test.equal(servers.length, 2);
       test.ok(servers.indexOf('testing') >= 0);
       test.ok(servers.indexOf('testing_server_2') >= 0);
@@ -2663,7 +2661,7 @@ test.create_server_from_awd = function(test) {
 
 test.create_server_from_awd_zip = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   var archive_filepath = 'BTeam_Server_v1.0.12a.zip';
 
@@ -2710,7 +2708,7 @@ test.create_server_from_awd_zip = function(test) {
 
 test.profile_delta = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -2745,7 +2743,7 @@ test.profile_delta = function(test) {
 
 test.onreboot = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -2796,7 +2794,7 @@ test.onreboot = function(test) {
 
 test.list_increments = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     function(callback) {
@@ -2850,9 +2848,9 @@ test.list_increments = function(test) {
 
 test.create_unconventional_server = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
-  test.equal(mineos.server_list(BASE_DIR).length, 0);
+  test.equal(MINE_OS.server_list(BASE_DIR).length, 0);
 
   async.series([
     async.apply(instance.create_unconventional_server, OWNER_CREDS),
@@ -2881,8 +2879,8 @@ test.create_unconventional_server = function(test) {
       test.equal(oct2dec(fs.statSync(instance.env.sc).mode), 664);
       test.equal(oct2dec(fs.statSync(instance.env.cc).mode), 664);
 
-      test.equal(mineos.server_list(BASE_DIR)[0], server_name);
-      test.equal(mineos.server_list(BASE_DIR).length, 1);
+      test.equal(MINE_OS.server_list(BASE_DIR)[0], server_name);
+      test.equal(MINE_OS.server_list(BASE_DIR).length, 1);
 
       instance.sc(function(err, dict) {
         test.equal(Object.keys(dict).length, 1);
@@ -2909,7 +2907,7 @@ test.create_unconventional_server = function(test) {
 
 test.run_installer = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     async.apply(instance.create, OWNER_CREDS),
@@ -2927,7 +2925,7 @@ test.run_installer = function(test) {
 
 test.renice = function(test) {
   var server_name = 'testing';
-  var instance = new mineos.mc(server_name, BASE_DIR);
+  var instance = new MINE_OS.mc(server_name, BASE_DIR);
 
   async.series([
     function(callback) {

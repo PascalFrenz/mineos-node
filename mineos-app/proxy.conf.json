@@ -1,0 +1,15 @@
+{
+  "/api/*": {
+    "target": "http://localhost:8443",
+    "secure": false,
+    "logLevel": "debug",
+    "changeOrigin": true
+  },
+  "/socket.io/*":{
+    "target": "http://localhost:8443",
+    "secure": false,
+    "logLevel": "debug",
+    "changeOrigin": true,
+    "ws": true
+  }
+}

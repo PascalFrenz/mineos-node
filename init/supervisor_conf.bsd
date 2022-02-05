@@ -1,5 +1,5 @@
 [program:mineos]
-command=/usr/local/bin/node webui.js
+command=/usr/local/bin/ts-node ./src/webui.ts
 directory=/usr/local/games/minecraft
 autostart=true
 autorestart=true

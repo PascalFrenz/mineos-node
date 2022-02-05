@@ -3,7 +3,7 @@ var path = require('path');
 var fs = require('fs-extra');
 var profile = require('./template');
 
-exports.profile = {
+export const Mianite = {
   name: 'Mianite',
   request_args: {
     url: 'http://mianite.us/repo?api=true',

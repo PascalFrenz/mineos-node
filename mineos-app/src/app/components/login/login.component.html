@@ -1,0 +1,22 @@
+<div class="flex flex-col justify-center items-center mt-64">
+  <app-card>
+    <h1 class="drop-shadow-sm text-4xl">Welcome to <span class="text-emerald-600">MineOS!</span></h1>
+
+    <form [formGroup]="loginForm" (ngSubmit)="login()">
+      <div class="flex flex-col gap-4 mt-8">
+        <input placeholder="Username"
+               type="text"
+               class="rounded-t-md focus:ring-gray-200 bg-gray-100"
+               formControlName="username">
+        <input placeholder="Password"
+               class="rounded-t-md focus:ring-gray-200 bg-gray-100"
+               [type]="hidePassword ? 'password' : 'text'"
+               formControlName="password">
+        <div class="mt-4 self-end px-4 py-2 ring-black ring-1">
+          <button type="submit" class="mr-2">Log in</button>
+          <fa-icon [icon]="faSignInAlt"></fa-icon>
+        </div>
+      </div>
+    </form>
+  </app-card>
+</div>

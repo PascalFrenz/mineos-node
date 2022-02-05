@@ -4,7 +4,7 @@ var path = require('path');
 var fs = require('fs-extra');
 var profile = require('./template');
 
-exports.profile = {
+export const Imagicalmine = {
   name: 'Imagicalmine',
   handler: function (profile_dir, callback) {
     var p = [];

@@ -3,7 +3,7 @@ var path = require('path');
 var fs = require('fs-extra');
 var profile = require('./template');
 
-exports.profile = {
+export const Mojang = {
   name: "Mojang Official Minecraft Jars",
   request_args: {
     url: 'https://launchermeta.mojang.com/mc/game/version_manifest.json',

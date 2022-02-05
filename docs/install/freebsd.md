@@ -49,7 +49,7 @@ Multiple appropriate Java editions exist, choose one to your liking:
 # cd /usr/local/games
 # git clone git://github.com/hexparrot/mineos-node minecraft
 # cd minecraft
-# chmod +x service.js mineos_console.js webui.js generate-sslcert.sh
+# chmod +x service.ts mineos_console.ts webui.ts generate-sslcert.sh
 # ./generate-sslcert.sh
 # cp mineos.conf /etc/mineos.conf
 ```
