@@ -12,8 +12,8 @@
                class="rounded-t-md focus:ring-gray-200 bg-gray-100"
                [type]="hidePassword ? 'password' : 'text'"
                formControlName="password">
-        <div class="mt-4 self-end px-4 py-2 ring-black ring-1">
-          <button type="submit" class="mr-2">Log in</button>
+        <div class="mt-4 self-end px-4 py-2 ring-black ring-1 hover:bg-gray-300 hover:drop-shadow-md transition-colors ease-in-out duration-200 hover:cursor-pointer" (click)="login()">
+          <span class="mr-2">Log in</span>
           <fa-icon [icon]="faSignInAlt"></fa-icon>
         </div>
       </div>
