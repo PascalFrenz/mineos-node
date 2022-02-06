@@ -3,9 +3,11 @@ import fs from "fs-extra";
 import path from "path";
 import winston from "winston";
 import { ServerContainer } from "./ServerContainer";
+import { FSWatcher } from "fs";
 
 export class ServerDiscovery {
   public servers: (ServerContainer | null)[] = [];
+  public fsWatcher?: FSWatcher;
 
   constructor(private server_path: string, private front_end: Server, private user_config: any) {
     const discovered_servers = this.discover();
@@ -14,7 +16,7 @@ export class ServerDiscovery {
   }
 
   public startServerWatcher() {
-    fs.watch(this.server_path, () => {
+    this.fsWatcher = fs.watch(this.server_path, () => {
       const current_servers = this.discover();
 
       for (let i in current_servers)

@@ -1,32 +1,34 @@
-import { createServer } from "http";
+import { createServer, Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
 import { io as Client, Socket as ClientSocket } from "socket.io-client";
 import { Backend } from "../src/server";
 
 describe('testing websocket server', () => {
-  let io: Server, serverSocket: Socket, clientSocket: ClientSocket;
+  let ioServer: Server, serverSocket: Socket, clientSocket: ClientSocket;
   let be: any;
+  let httpServer: HttpServer
   beforeAll((done) => {
-    const httpServer = createServer();
-    io = new Server(httpServer);
+    httpServer = createServer();
+    ioServer = new Server(httpServer);
     httpServer.listen(() => {
       const address = httpServer.address();
       if (typeof address !== "string" && address !== null) {
         const port = address.port;
         clientSocket = Client(`http://localhost:${port}`);
-        io.on("connection", (socket) => {
+        ioServer.on("connection", (socket) => {
           serverSocket = socket;
         });
         clientSocket.on("connect", done);
       }
     });
-    be = new Backend("./test/minecraft", io, {});
+    be = new Backend("./test/_test_basedir/minecraft", ioServer, {});
   });
 
   afterAll((done) => {
-    io.close();
-    clientSocket.close();
     be.shutdown();
+    ioServer.close();
+    clientSocket.close();
+    httpServer.close();
     done();
   });
 

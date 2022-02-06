@@ -31,6 +31,9 @@ export class Backend {
 
   private profiles: any[] = [];
   private serverWatcher: ServerDiscovery;
+  private host_heartbeat_interval_id?: NodeJS.Timer;
+  private start_servers_timeout: NodeJS.Timeout;
+  private udpBroadcasterIntervals: NodeJS.Timeout[] = [];
 
   constructor(
     private base_dir: string,
@@ -54,7 +57,7 @@ export class Backend {
     this.initHeartbeat();
     this.initFirewormWatcher();
 
-    setTimeout(this.start_servers, 5000);
+    this.start_servers_timeout = setTimeout(this.start_servers, 5000);
     this.front_end.on('connection', socket => this.init_connection(socket))
   }
 
@@ -64,6 +67,18 @@ export class Backend {
     } else {
       return [];
     }
+  }
+
+  shutdown() {
+    for (let server_name in this.servers) {
+      this.servers[server_name].cleanup();
+    }
+    this.udpBroadcasterIntervals.forEach(clearInterval)
+    clearInterval(this.start_servers_timeout);
+    if (this.host_heartbeat_interval_id) {
+      clearInterval(this.host_heartbeat_interval_id);
+    }
+    this.serverWatcher.fsWatcher?.close();
   }
 
   start_servers() {
@@ -89,13 +104,6 @@ export class Backend {
         winston.error(`Error occurred while starting servers: ${err}`)
       }
     )
-  }
-
-  shutdown() {
-    for (let server_name in this.servers) {
-      this.servers[server_name].cleanup();
-    }
-    this.front_end.disconnectSockets(true);
   }
 
   send_profile_list(send_existing: boolean) {
@@ -239,7 +247,8 @@ export class Backend {
             }
           })
         }
-        setTimeout(next, BROADCAST_DELAY_MS);
+        const timeout = setTimeout(next, BROADCAST_DELAY_MS);
+        this.udpBroadcasterIntervals.push(timeout);
       },
       (err) => console.log(err)
     );
@@ -259,7 +268,7 @@ export class Backend {
       })
     }
 
-    setInterval(host_heartbeat, HOST_HEARTBEAT_DELAY_MS, this.front_end);
+    this.host_heartbeat_interval_id = setInterval(host_heartbeat, HOST_HEARTBEAT_DELAY_MS, this.front_end);
   }
 
   private initFirewormWatcher() {
@@ -278,7 +287,7 @@ export class Backend {
       .on('remove', fp => {
         winston.info('[WEBUI] File removed from import directory', fp);
         this.send_importable_list();
-      })
+      });
   }
 
   private send_user_list(username, socket) {
