@@ -1,9 +1,9 @@
 import { createServer } from "http";
 import { Server, Socket } from "socket.io";
 import { io as Client, Socket as ClientSocket } from "socket.io-client";
-import { backend } from "../src/server";
+import { Backend } from "../src/server";
 
-describe('testing websocket server', function () {
+describe('testing websocket server', () => {
   let io: Server, serverSocket: Socket, clientSocket: ClientSocket;
   let be: any;
   beforeAll((done) => {
@@ -20,13 +20,14 @@ describe('testing websocket server', function () {
         clientSocket.on("connect", done);
       }
     });
-    be = new backend("./test/minecraft", io, {});
+    be = new Backend("./test/minecraft", io, {});
   });
 
-  afterAll(() => {
+  afterAll((done) => {
     io.close();
     clientSocket.close();
     be.shutdown();
+    done();
   });
 
   test("should receive heartbeat", done => {

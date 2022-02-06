@@ -5,7 +5,7 @@ import winston from "winston";
 import { ServerContainer } from "./ServerContainer";
 
 export class ServerDiscovery {
-  private servers: (ServerContainer | null)[] = [];
+  public servers: (ServerContainer | null)[] = [];
 
   constructor(private server_path: string, private front_end: Server, private user_config: any) {
     const discovered_servers = this.discover();

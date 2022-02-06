@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { MINE_OS } from "./mineos";
-import { backend } from "./server";
+import { Backend } from "./server";
 import auth from "./auth";
 import async from "async";
 import fs from "fs-extra";
@@ -177,7 +177,7 @@ MINE_OS.dependencies((err, binaries) => {
     process.exit(4);
   }
 
-  const be = new backend(base_directory, io, mineos_config);
+  const be: Backend = new Backend(base_directory, io, mineos_config);
 
   app.get('/', (req, res) => {
     if (USE_NEW_UI) {
