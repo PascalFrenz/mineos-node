@@ -1,36 +1,42 @@
 import { createServer, Server as HttpServer } from "http";
 import { Server, Socket } from "socket.io";
-import { io as Client, Socket as ClientSocket } from "socket.io-client";
+import { io, Socket as ClientSocket } from "socket.io-client";
 import { Backend } from "../src/server";
+
+const BASE_DIR_TEST = "./test/_test_basedir/minecraft";
 
 describe('testing websocket server', () => {
   let ioServer: Server, serverSocket: Socket, clientSocket: ClientSocket;
   let be: any;
   let httpServer: HttpServer
-  beforeAll((done) => {
+
+  beforeEach((done) => {
     httpServer = createServer();
     ioServer = new Server(httpServer);
+    be = new Backend(BASE_DIR_TEST, ioServer, {});
     httpServer.listen(() => {
       const address = httpServer.address();
       if (typeof address !== "string" && address !== null) {
         const port = address.port;
-        clientSocket = Client(`http://localhost:${port}`);
+        clientSocket = io(`http://localhost:${port}`);
+        ioServer.use((socket, next) => {
+          socket.request["user"] = { username: "root" };
+          next();
+        })
         ioServer.on("connection", (socket) => {
           serverSocket = socket;
         });
         clientSocket.on("connect", done);
       }
     });
-    be = new Backend("./test/_test_basedir/minecraft", ioServer, {});
   });
 
-  afterAll((done) => {
+  afterEach(() => {
     be.shutdown();
     ioServer.close();
     clientSocket.close();
     httpServer.close();
-    done();
-  });
+  }, 200);
 
   test("should receive heartbeat", done => {
     clientSocket.on("host_heartbeat", (heartbeat) => {

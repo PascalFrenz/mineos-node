@@ -10,8 +10,8 @@ import { Tail } from "tail";
 import auth from "../auth";
 import uuid from "node-uuid";
 import hash from "object-hash";
-import fireworm from "fireworm";
 import introspect from "introspect";
+import { FSWatcher, watch } from "chokidar";
 
 export class ServerContainer {
 
@@ -23,6 +23,8 @@ export class ServerContainer {
   private intervals;
   private COMMIT_INTERVAL_MIN = null;
   private HEARTBEAT_INTERVAL_MS = 5000;
+  private configFileWatcher: FSWatcher;
+  private makeTailFileWatcher?: FSWatcher;
 
   constructor(private server_name: string, private user_config: Record<string, any>, private socket_io: Server) {
     // when evoked, creates a permanent 'mc' instance, namespace, and place for file tails.
@@ -85,7 +87,7 @@ export class ServerContainer {
       this.make_tail(files_to_tail[i]);
 
 
-    let skip_dirs = fs.readdirSync(this.instance.env.cwd).filter((p) => {
+    let skip_dirs: string[] = fs.readdirSync(this.instance.env.cwd).filter((p) => {
       try {
         return fs.statSync(path.join(this.instance.env.cwd, p)).isDirectory();
       } catch (e) {
@@ -99,27 +101,21 @@ export class ServerContainer {
       if (skip_dirs.indexOf(default_skips[i]) == -1)
         skip_dirs.push(default_skips[i]);
 
-    skip_dirs = skip_dirs.filter(function (e) {
-      return e !== 'logs'
-    }); // remove 'logs' from blacklist!
+    skip_dirs = skip_dirs.filter(e => e !== 'logs'); // remove 'logs' from blacklist!
 
     winston.info(`[${server_name}] Using skipDirEntryPatterns: ${skip_dirs}`);
 
-    const fw = fireworm(this.instance.env.cwd, {skipDirEntryPatterns: skip_dirs});
-
-    for (let i in skip_dirs) {
-      fw.ignore(skip_dirs[i]);
-    }
-    fw.add('**/server.properties');
-    fw.add('**/server.config');
-    fw.add('**/cron.config');
-    fw.add('**/eula.txt');
-    fw.add('**/server-icon.png');
-    fw.add('**/config.yml');
+    this.configFileWatcher = watch(this.instance.env.cwd, {ignored: skip_dirs});
+    this.configFileWatcher.add('**/server.properties');
+    this.configFileWatcher.add('**/server.config');
+    this.configFileWatcher.add('**/cron.config');
+    this.configFileWatcher.add('**/eula.txt');
+    this.configFileWatcher.add('**/server-icon.png');
+    this.configFileWatcher.add('**/config.yml');
 
 
-    fw.on('add', this.handle_event);
-    fw.on('change', this.handle_event);
+    this.configFileWatcher.on('add', this.handle_event);
+    this.configFileWatcher.on('change', this.handle_event);
 
 
     this.instance.crons((err, cron_dict) => {
@@ -343,12 +339,12 @@ export class ServerContainer {
       winston.info(`[${this.server_name}] Watching for file generation: ${rel_filepath}`);
 
       const default_skips = ['world', 'world_the_end', 'world_nether', 'dynmap', 'plugins', 'web', 'region', 'playerdata', 'stats', 'data'];
-      const fw = fireworm(this.instance.env.cwd, {skipDirEntryPatterns: default_skips});
+      this.makeTailFileWatcher = watch(this.instance.env.cwd, {ignored: default_skips});
 
-      fw.add(`**/${rel_filepath}`);
-      fw.on('add', fp => {
-        if (abs_filepath == fp) {
-          fw.clear();
+      this.makeTailFileWatcher.add(`**/${rel_filepath}`);
+      this.makeTailFileWatcher.on('add', fp => {
+        if (abs_filepath === fp) {
+          this.makeTailFileWatcher?.unwatch(fp);
           winston.info(`[${this.server_name}] ${path.basename(fp)} created! Watchfile ${rel_filepath} closed`);
           async.nextTick(() => this.make_tail(rel_filepath));
         }
@@ -391,12 +387,14 @@ export class ServerContainer {
   }
 
   cleanup() {
-    for (let t in this.tails)
+    for (let t in this.tails) {
       this.tails[t].unwatch();
+    }
 
-    for (let i in this.intervals)
-      clearInterval(this.intervals[i]);
+    this.intervals.forEach(clearInterval);
 
+    this.makeTailFileWatcher?.close();
+    this.configFileWatcher?.close();
     this.nsp.removeAllListeners();
   }
 

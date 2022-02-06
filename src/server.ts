@@ -7,7 +7,6 @@ import procfs from "procfs-stats";
 import which from "which";
 import profiles_const from "../profiles.d/profiles"
 import dgram from "dgram";
-import fireworm from "fireworm";
 import userid from "userid";
 import request from "request";
 import progress from "request-progress";
@@ -21,6 +20,7 @@ import passwd from "etc-passwd";
 import { Server, Socket } from "socket.io";
 import { ServerDiscovery } from "./server/ServerDiscovery";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
+import { FSWatcher, watch } from "chokidar";
 
 winston.add(new winston.transports.File({
   filename: '/var/log/mineos.log',
@@ -34,6 +34,7 @@ export class Backend {
   private host_heartbeat_interval_id?: NodeJS.Timer;
   private start_servers_timeout: NodeJS.Timeout;
   private udpBroadcasterIntervals: NodeJS.Timeout[] = [];
+  private importWatcher?: FSWatcher;
 
   constructor(
     private base_dir: string,
@@ -55,7 +56,7 @@ export class Backend {
     this.serverWatcher.startServerWatcher();
     this.initUdpBroadcaster();
     this.initHeartbeat();
-    this.initFirewormWatcher();
+    this.initImportWatcher();
 
     this.start_servers_timeout = setTimeout(this.start_servers, 5000);
     this.front_end.on('connection', socket => this.init_connection(socket))
@@ -79,6 +80,7 @@ export class Backend {
       clearInterval(this.host_heartbeat_interval_id);
     }
     this.serverWatcher.fsWatcher?.close();
+    this.importWatcher?.close();
   }
 
   start_servers() {
@@ -271,15 +273,15 @@ export class Backend {
     this.host_heartbeat_interval_id = setInterval(host_heartbeat, HOST_HEARTBEAT_DELAY_MS, this.front_end);
   }
 
-  private initFirewormWatcher() {
+  private initImportWatcher() {
     const importable_archives = path.join(this.base_dir, MINE_OS.DIRS['import']);
-    const fw = fireworm(importable_archives);
-    fw.add('**/*.zip');
-    fw.add('**/*.tar');
-    fw.add('**/*.tgz');
-    fw.add('**/*.tar.gz');
+    this.importWatcher = watch(importable_archives);
+    this.importWatcher.add('**/*.zip');
+    this.importWatcher.add('**/*.tar');
+    this.importWatcher.add('**/*.tgz');
+    this.importWatcher.add('**/*.tar.gz');
 
-    fw
+    this.importWatcher
       .on('add', fp => {
         winston.info('[WEBUI] New file found in import directory', fp);
         this.send_importable_list();
@@ -606,7 +608,7 @@ export class Backend {
 
   private init_connection(socket: Socket<DefaultEventsMap, DefaultEventsMap>) {
     const ip_address = socket.request.socket.remoteAddress;
-    // @ts-ignore
+    // @ts-ignore this comes from the passport middleware
     const username = socket.request.user.username;
 
     winston.info(`[WEBUI] ${username} connected from ${ip_address}`);
