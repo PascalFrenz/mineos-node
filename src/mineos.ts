@@ -318,22 +318,22 @@ function mc(this: any, server_name, base_dir) {
     ], callback)
   }
 
-  self.create = function(owner, callback) {
+  self.create = function(owner: {uid: string, gid: string}, callback) {
     async.series([
       async.apply(self.verify, '!exists'),
       async.apply(self.verify, '!up'),
       async.apply(fs.ensureDir, self.env.cwd),
-      async.apply(fs.chown, self.env.cwd, owner['uid'], owner['gid']),
+      async.apply(fs.chown, self.env.cwd, owner.uid, owner.gid),
       async.apply(fs.ensureDir, self.env.bwd),
-      async.apply(fs.chown, self.env.bwd, owner['uid'], owner['gid']),
+      async.apply(fs.chown, self.env.bwd, owner.uid, owner.gid),
       async.apply(fs.ensureDir, self.env.awd),
-      async.apply(fs.chown, self.env.awd, owner['uid'], owner['gid']),
+      async.apply(fs.chown, self.env.awd, owner.uid, owner.gid),
       async.apply(fs.ensureFile, self.env.sp),
-      async.apply(fs.chown, self.env.sp, owner['uid'], owner['gid']),
+      async.apply(fs.chown, self.env.sp, owner.uid, owner.gid),
       async.apply(fs.ensureFile, self.env.sc),
-      async.apply(fs.chown, self.env.sc, owner['uid'], owner['gid']),
+      async.apply(fs.chown, self.env.sc, owner.uid, owner.gid),
       async.apply(fs.ensureFile, self.env.cc),
-      async.apply(fs.chown, self.env.cc, owner['uid'], owner['gid']),
+      async.apply(fs.chown, self.env.cc, owner.uid, owner.gid),
       async.apply(self.overlay_sp, MINE_OS.SP_DEFAULTS),
       async.apply(self.modify_sc, 'java', 'java_binary', ''),
       async.apply(self.modify_sc, 'java', 'java_xmx', '256'),

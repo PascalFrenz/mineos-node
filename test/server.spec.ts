@@ -10,7 +10,7 @@ describe('testing websocket server', () => {
   let be: any;
   let httpServer: HttpServer
 
-  beforeEach((done) => {
+  beforeAll((done) => {
     httpServer = createServer();
     ioServer = new Server(httpServer);
     be = new Backend(BASE_DIR_TEST, ioServer, {});
@@ -31,7 +31,7 @@ describe('testing websocket server', () => {
     });
   });
 
-  afterEach(() => {
+  afterAll(() => {
     be.shutdown();
     ioServer.close();
     clientSocket.close();
@@ -47,5 +47,17 @@ describe('testing websocket server', () => {
       expect(heartbeat.loadavg).toHaveLength(3);
       done()
     });
+    clientSocket.emit("get_host_heartbeat");
   });
+
+  test("should get user information", done => {
+    clientSocket.on("user_information", ({users, groups}) => {
+      expect(users).toBeDefined();
+      expect(groups).toBeDefined();
+      expect(Array.isArray(users)).toBe(true);
+      expect(Array.isArray(groups)).toBe(true);
+      done();
+    });
+    clientSocket.emit("get_user_information");
+  })
 });

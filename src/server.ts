@@ -22,6 +22,24 @@ import { ServerDiscovery } from "./server/ServerDiscovery";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
 import { FSWatcher, watch } from "chokidar";
 
+interface Heartbeat {
+  uptime: number;
+  freemem: number;
+  loadavg: number[];
+}
+
+interface User {
+  username: string;
+  uid: number;
+  gid: number;
+  home: string;
+}
+
+interface Group {
+  groupname: string;
+  gid: number;
+}
+
 winston.add(new winston.transports.File({
   filename: '/var/log/mineos.log',
   handleExceptions: true
@@ -31,7 +49,6 @@ export class Backend {
 
   private profiles: any[] = [];
   private serverWatcher: ServerDiscovery;
-  private host_heartbeat_interval_id?: NodeJS.Timer;
   private start_servers_timeout: NodeJS.Timeout;
   private udpBroadcasterIntervals: NodeJS.Timeout[] = [];
   private importWatcher?: FSWatcher;
@@ -55,11 +72,10 @@ export class Backend {
     this.serverWatcher = new ServerDiscovery(path.join(base_dir, MINE_OS.DIRS['servers']), this.front_end, user_config);
     this.serverWatcher.startServerWatcher();
     this.initUdpBroadcaster();
-    this.initHeartbeat();
     this.initImportWatcher();
 
     this.start_servers_timeout = setTimeout(this.start_servers, 5000);
-    this.front_end.on('connection', socket => this.init_connection(socket))
+    this.front_end.on('connection', socket => this.init_connection(socket));
   }
 
   public get servers(): Record<string, any> {
@@ -76,9 +92,6 @@ export class Backend {
     }
     this.udpBroadcasterIntervals.forEach(clearInterval)
     clearInterval(this.start_servers_timeout);
-    if (this.host_heartbeat_interval_id) {
-      clearInterval(this.host_heartbeat_interval_id);
-    }
     this.serverWatcher.fsWatcher?.close();
     this.importWatcher?.close();
   }
@@ -256,21 +269,17 @@ export class Backend {
     );
   }
 
-  private initHeartbeat() {
-    const HOST_HEARTBEAT_DELAY_MS = 1000;
-
-    function host_heartbeat(server_socket: Server) {
-      // @ts-ignore types do not include procfs.meminfo call...
+  private getHeartbeatData(): Promise<Heartbeat> {
+    return new Promise<Heartbeat>(resolve => {
+      // @ts-ignore @types/procfs do not include procfs.meminfo call...
       procfs.meminfo((err, meminfo) => {
-        server_socket.emit('host_heartbeat', {
+        resolve({
           'uptime': os.uptime(),
           'freemem': ((meminfo && meminfo.MemAvailable) ? Number(meminfo.MemAvailable) * 1024 : os.freemem()),
           'loadavg': os.loadavg()
-        })
-      })
-    }
-
-    this.host_heartbeat_interval_id = setInterval(host_heartbeat, HOST_HEARTBEAT_DELAY_MS, this.front_end);
+        });
+      });
+    });
   }
 
   private initImportWatcher() {
@@ -292,38 +301,40 @@ export class Backend {
       });
   }
 
-  private send_user_list(username, socket) {
-    const users: any[] = [];
-    const groups: any[] = [];
-
-    passwd.getUsers()
-      .on('user', user_data => {
-        if (user_data.username == username)
-          users.push({
-            username: user_data.username,
-            uid: user_data.uid,
-            gid: user_data.gid,
-            home: user_data.home
-          })
-      })
-      .on('end', () => {
-        socket.emit('user_list', users);
-      });
-
-    passwd.getGroups()
-      .on('group', group_data => {
-        if (group_data.users.indexOf(username) >= 0 || group_data.gid == userid.gids(username)[0]) {
-          if (group_data.gid > 0) {
-            groups.push({
-              groupname: group_data.groupname,
-              gid: group_data.gid
+  private getUserInformation(username: string): Promise<[User[], Group[]]> {
+    const users = new Promise<User[]>(resolve => {
+      const userList: User[] = [];
+      passwd.getUsers()
+        .on('user', user_data => {
+          if (user_data.username == username)
+            userList.push({
+              username: user_data.username,
+              uid: user_data.uid,
+              gid: user_data.gid,
+              home: user_data.home
             })
+        })
+        .on('end', () => resolve(userList));
+    });
+    //socket.emit('user_list', users)
+    //socket.emit('group_list', groups)
+    const groups = new Promise<Group[]>(resolve => {
+      const groupList: Group[] = [];
+      passwd.getGroups()
+        .on('group', group_data => {
+          if (group_data.users.indexOf(username) >= 0 || group_data.gid == userid.gids(username)[0]) {
+            if (group_data.gid > 0) {
+              groupList.push({
+                groupname: group_data.groupname,
+                gid: group_data.gid
+              })
+            }
           }
-        }
-      })
-      .on('end', () => {
-        socket.emit('group_list', groups);
-      });
+        })
+        .on('end', () => resolve(groupList));
+    });
+
+    return Promise.all([users, groups]);
   }
 
   private webui_dispatcher(ip_address, username, args) {
@@ -612,16 +623,20 @@ export class Backend {
     const username = socket.request.user.username;
 
     winston.info(`[WEBUI] ${username} connected from ${ip_address}`);
-    socket.emit('whoami', username);
-    socket.emit('commit_msg', "");
-    socket.emit('change_locale', (this.user_config || {})['webui_locale']);
-    socket.emit('optional_columns', (this.user_config || {})['optional_columns']);
 
-    for (let server_name in this.servers)
+    for (const server_name in this.servers) {
       socket.emit('track_server', server_name);
+    }
 
-    socket.on('command', (args) => this.webui_dispatcher(ip_address, username, args));
-    this.send_user_list(username, socket);
+    socket.on('command', (args) => this.webui_dispatcher(ip_address, username, args))
+      .on(
+        "get_host_heartbeat",
+        () => this.getHeartbeatData().then(data => socket.emit("host_heartbeat", data))
+      )
+      .on(
+        "get_user_information",
+        () => this.getUserInformation(username).then(([users, groups]) => socket.emit("user_information", { users, groups }))
+      )
     this.send_profile_list(true);
     this.send_spigot_list();
     this.send_importable_list();
