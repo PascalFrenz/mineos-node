@@ -316,8 +316,6 @@ export class Backend {
         })
         .on('end', () => resolve(userList));
     });
-    //socket.emit('user_list', users)
-    //socket.emit('group_list', groups)
     const groups = new Promise<Group[]>(resolve => {
       const groupList: Group[] = [];
       passwd.getGroups()
